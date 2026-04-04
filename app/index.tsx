@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
 import { Stack } from 'expo-router';
+import React, { useState } from 'react';
+import MainTabNavigator from '../src/navigation/MainTabNavigator'; // 等下要建立
 import LoginScreen from '../src/screens/Login';
 import SetupScreen from '../src/screens/Setup';
-import MainTabNavigator from '../src/navigation/MainTabNavigator'; // 等下要建立
 
 export default function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -29,3 +29,4 @@ export default function App() {
         </>
     );
 }
+//你好
