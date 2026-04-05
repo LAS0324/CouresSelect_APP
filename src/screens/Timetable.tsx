@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ScrollView, Switch, Platform, StatusBar } from 'react-native';
 import { COLORS } from '../styles/theme';
+import { useCourse } from '../context/CourseContext'; // 引入共享籃子
 
 // 根據「3/23-3/29 為第五週」反推，第一週週一為 2026-02-23
 const SEMESTER_START_DATE = new Date('2026-02-23');
@@ -10,6 +11,9 @@ const TimetableScreen = () => {
     const [isWeeklyMode, setIsWeeklyMode] = useState(false);
     const [currentWeek, setCurrentWeek] = useState(1);
 
+    // 從籃子拿取選中的課程資料
+    const { selectedCourses } = useCourse();
+
     const days = [
         { label: '一', en: 'Mon' },
         { label: '二', en: 'Tue' },
@@ -18,7 +22,7 @@ const TimetableScreen = () => {
         { label: '五', en: 'Fri' },
     ];
 
-    // 補全所有節次資訊
+    // 節次資訊
     const periods = [
         { id: '0M', time: '07:10\n08:00' },
         { id: '01', time: '08:10\n09:00' },
@@ -40,32 +44,24 @@ const TimetableScreen = () => {
     // 動態計算正確週數
     useEffect(() => {
         const today = new Date();
-        // 計算與開學週週一相差的天數
         const diffInMs = today.getTime() - SEMESTER_START_DATE.getTime();
         const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-        // 只要是在開學當週內都算第一週，以此類推
         const week = Math.floor(diffInDays / 7) + 1;
 
-        // 限制在合理的學期週數內 (1-18週)
         if (week >= 1 && week <= 18) {
             setCurrentWeek(week);
         } else if (week > 18) {
-            setCurrentWeek(18); // 學期結束
+            setCurrentWeek(18);
         } else {
-            setCurrentWeek(1); // 尚未開學
+            setCurrentWeek(1);
         }
     }, []);
 
-    // 測試資料：星期一 (0) 的 02 節有兩堂課 (衝堂展示)
-    const mockCourses: any = {
-        0: {
-            '02': [
-                { name: '數位科技概論', room: 'A302', teacher: '王小明' },
-                { name: '創意設計實務', room: 'B101', teacher: '李大華' }
-            ],
-            '07': [{ name: '教育心理學', room: '篤行403', teacher: '陳教授' }],
-        }
+    // 核心邏輯：過濾出該天、該節次的課程
+    const getCoursesBySlot = (dayIdx: number, periodId: string) => {
+        // 格式對應 Context 中的 "1-02" (星期-節次)
+        const slotKey = `${dayIdx + 1}-${periodId}`;
+        return selectedCourses.filter(course => course.timeSlots.includes(slotKey));
     };
 
     return (
@@ -105,7 +101,6 @@ const TimetableScreen = () => {
 
                 {/* 課表主體 */}
                 <View style={styles.tableCard}>
-                    {/* 修改後的標題欄：確保 flex 權重與下方內容一致 */}
                     <View style={styles.tableHeader}>
                         <View style={{ flex: 0.6 }} />
                         <View style={{ flex: 3, flexDirection: 'row' }}>
@@ -117,7 +112,9 @@ const TimetableScreen = () => {
 
                     <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                         {periods.map((p) => {
-                            const dayCourses = mockCourses[selectedDay]?.[p.id] || [];
+                            // 動態抓取課程
+                            const dayCourses = getCoursesBySlot(selectedDay, p.id);
+
                             return (
                                 <View key={p.id} style={styles.periodRow}>
                                     {/* 左側節次與時間 */}
@@ -126,17 +123,16 @@ const TimetableScreen = () => {
                                         <Text style={styles.timeRangeText}>{p.time}</Text>
                                     </View>
 
-                                    {/* 右側課程內容 */}
+                                    {/* 右側課程內容：若有課則渲染，沒課則留空 */}
                                     <View style={styles.courseCellContainer}>
                                         {dayCourses.length > 0 ? (
-                                            dayCourses.map((c: any, i: number) => (
+                                            dayCourses.map((c, i) => (
                                                 <View key={i} style={[
                                                     styles.courseEntry,
                                                     dayCourses.length > 1 && styles.clashHighlight
                                                 ]}>
-                                                    {/* 這裡的 flex 比例 1.2 : 1 : 1 必須與上方標題一致 */}
                                                     <Text style={styles.courseNameText} numberOfLines={2}>{c.name}</Text>
-                                                    <Text style={styles.courseDetailText}>{c.room}</Text>
+                                                    <Text style={styles.courseDetailText}>{c.location}</Text>
                                                     <Text style={styles.courseDetailText}>{c.teacher}</Text>
                                                 </View>
                                             ))
@@ -206,7 +202,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#CFD8DC'
     },
-    headerColText: { flex: 1, textAlign: 'center', fontSize: 12, color: '#1A1A1A', fontWeight: 'bold' },
+    headerColText: { textAlign: 'center', fontSize: 12, color: '#1A1A1A', fontWeight: 'bold' },
 
     periodRow: {
         flexDirection: 'row',

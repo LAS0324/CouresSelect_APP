@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Platform, StatusBar } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 需要安裝 expo-icons
+import { StyleSheet, View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Platform, StatusBar, Alert } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useCourse } from '../context/CourseContext'; // 引入共享籃子
 
 const CourseSelectionScreen = () => {
     const [searchText, setSearchText] = useState('');
+    const { addCourse } = useCourse(); // 從籃子拿出加課功能
 
-    // 模擬資料庫抓取的課程資料
+    // 模擬資料庫抓取的課程資料 (補上 timeSlots 供課表對齊)
     const mockCourses = [
         {
             id: '1',
@@ -15,6 +17,7 @@ const CourseSelectionScreen = () => {
             location: '明德樓624',
             type: '必修',
             credits: '3學分',
+            timeSlots: ['1-07', '1-08'], // 週一 7, 8 節
         },
         {
             id: '2',
@@ -24,14 +27,32 @@ const CourseSelectionScreen = () => {
             location: '公館校區D102',
             type: '選修',
             credits: '2學分',
+            timeSlots: ['2-03', '2-04'], // 週二 3, 4 節
         },
-        // 可持續增加...
+        {
+            id: '3',
+            name: '創意設計實務',
+            teacher: '李大華 教授',
+            time: '週一第2節',
+            location: 'B101',
+            type: '選修',
+            credits: '2學分',
+            timeSlots: ['1-02'], // 週一 2 節
+        },
     ];
 
     const handleAddCourse = (course: any) => {
-        console.log('匯入課表:', course.name);
-        // 這裡未來會接第一頁的課表狀態更新
-        alert(`已將「${course.name}」加入待選清單！`);
+        // 執行加入籃子的動作
+        addCourse({
+            id: course.id,
+            name: course.name,
+            teacher: course.teacher,
+            timeSlots: course.timeSlots,
+            location: course.location,
+        });
+
+        // 提示使用者
+        Alert.alert('加入成功', `已將「${course.name}」匯入待選清單！`);
     };
 
     return (
@@ -154,7 +175,6 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         padding: 20,
         marginBottom: 20,
-        // 陰影
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -186,7 +206,7 @@ const styles = StyleSheet.create({
     },
     reviewLink: { fontSize: 14, color: '#666', textDecorationLine: 'underline' },
     addButton: {
-        backgroundColor: '#7B886F', // 橄欖綠按鈕
+        backgroundColor: '#7B886F',
         width: 50,
         height: 50,
         borderRadius: 25,
