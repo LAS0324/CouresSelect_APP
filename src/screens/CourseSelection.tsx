@@ -2,17 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCourse } from '../context/CourseContext';
-import firestore from '@react-native-firebase/firestore'; // 確保已安裝此套件
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, onSnapshot, query } from 'firebase/firestore';
 
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
+    authDomain: "courseapp-788ad.firebaseapp.com",
+    projectId: "courseapp-788ad",
+    storageBucket: "courseapp-788ad.firebasestorage.app",
+    messagingSenderId: "650322013005",
+    appId: "1:650322013005:web:5855bdc8aa1c0dc70be504",
+    measurementId: "G-L6FBFFW8PM"
+};
+
+// 初始化 Firebase (確保不會重複初始化)
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 // 大樓代號對照表
 const BUILDING_MAP: { [key: string]: string } = {
-    'Y': '明德樓',
-    'A': '篤行樓',
-    'B': '至善樓',
-    'C': '勤學樓',
-    'F': '芳蘭樓',
-    'D': '公館校區',
-    // 依據學校需求持續補齊
+    'A': '行政大樓', 'B': '科學館', 'C': '明德樓', 'D': '芳蘭樓',
+    'E': '創意館', 'F': '視聽館', 'G': '至善樓', 'H': '圖書館',
+    'J': '運動場', 'K': '體育館', 'L': '學生活動中心', 'M': '藝術館',
+    'N': '櫻花廣場', 'O': '第一宿舍', 'P': '第二宿舍', 'Q': '禮堂',
+    'R': '資源回收場', 'S': '文薈樓', 'T': '排球場', 'U': '機車停車棚',
+    'V': '校門', 'W': '網球場', 'X': '美術館', 'Y': '篤行樓', 'Z': '泳健館'
 };
 
 // 地點格式化工具
@@ -20,10 +34,7 @@ const formatLocation = (code: string) => {
     if (!code) return '未定';
     const prefix = code.charAt(0).toUpperCase();
     const roomNumber = code.substring(1);
-    if (BUILDING_MAP[prefix]) {
-        return `${BUILDING_MAP[prefix]}${roomNumber}`;
-    }
-    return code;
+    return BUILDING_MAP[prefix] ? `${BUILDING_MAP[prefix]}${roomNumber}` : code;
 };
 
 const CourseSelectionScreen = () => {
@@ -32,43 +43,45 @@ const CourseSelectionScreen = () => {
     const [loading, setLoading] = useState(true); // 載入狀態
     const { addCourse, currentSemester } = useCourse();
 
+    
     // 從 Firebase 即時抓取課程資料
     useEffect(() => {
-        const subscriber = firestore()
-            .collection('Semesters')
-            .doc(currentSemester) // 使用 Context 裡的 "114-2"
-            .collection('Courses')
-            .onSnapshot(querySnapshot => {
-                const courseList: any[] = [];
-                querySnapshot.forEach(documentSnapshot => {
-                    courseList.push({
-                        ...documentSnapshot.data(),
-                        id: documentSnapshot.id,
-                    });
-                });
-                setCourses(courseList);
-                setLoading(false);
-            }, error => {
-                console.error("Firebase 讀取錯誤: ", error);
-                setLoading(false);
-            });
+        // 1. 建立對應到 Firestore 的集合引用
+        const courseCollection = collection(db, 'Semesters', currentSemester, 'Courses');
 
-        return () => subscriber();
+        // 2. 使用 JS SDK 的 onSnapshot 監聽
+        const unsubscribe = onSnapshot(courseCollection, (querySnapshot) => {
+            const courseList: any[] = [];
+            querySnapshot.forEach((doc) => {
+                courseList.push({
+                    ...doc.data(),
+                    id: doc.id,
+                });
+            });
+            setCourses(courseList);
+            setLoading(false);
+        }, (error) => {
+            console.error("Firebase 讀取錯誤: ", error);
+            setLoading(false);
+        });
+
+        // 3. 組件卸載時取消監聽
+        return () => unsubscribe();
     }, [currentSemester]);
 
     const handleAddCourse = (course: any) => {
         addCourse({
             id: course.id,
-            name: course.title, // 注意：資料庫欄位是 title
+            name: course.title,
             teacher: course.teacher,
             timeSlots: course.timeSlots,
-            location: course.location,
+            location: formatLocation(course.location), // 這裡建議也加上 format，讓課表顯示中文
         });
         Alert.alert('加入成功', `已將「${course.title}」匯入待選清單！`);
     };
 
     // 搜尋過濾邏輯
-    const filteredCourses = courses.filter(course => 
+    const filteredCourses = courses.filter(course =>
         course.title?.includes(searchText) || course.teacher?.includes(searchText)
     );
 
