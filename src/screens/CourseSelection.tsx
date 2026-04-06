@@ -1,64 +1,80 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Platform, StatusBar, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useCourse } from '../context/CourseContext'; // 引入共享籃子
+import { useCourse } from '../context/CourseContext';
+import firestore from '@react-native-firebase/firestore'; // 確保已安裝此套件
+
+// 大樓代號對照表
+const BUILDING_MAP: { [key: string]: string } = {
+    'Y': '明德樓',
+    'A': '篤行樓',
+    'B': '至善樓',
+    'C': '勤學樓',
+    'F': '芳蘭樓',
+    'D': '公館校區',
+    // 依據學校需求持續補齊
+};
+
+// 地點格式化工具
+const formatLocation = (code: string) => {
+    if (!code) return '未定';
+    const prefix = code.charAt(0).toUpperCase();
+    const roomNumber = code.substring(1);
+    if (BUILDING_MAP[prefix]) {
+        return `${BUILDING_MAP[prefix]}${roomNumber}`;
+    }
+    return code;
+};
 
 const CourseSelectionScreen = () => {
     const [searchText, setSearchText] = useState('');
-    const { addCourse } = useCourse(); // 從籃子拿出加課功能
+    const [courses, setCourses] = useState<any[]>([]); // 存放雲端抓下來的課程
+    const [loading, setLoading] = useState(true); // 載入狀態
+    const { addCourse, currentSemester } = useCourse();
 
-    // 模擬資料庫抓取的課程資料 (補上 timeSlots 供課表對齊)
-    const mockCourses = [
-        {
-            id: '1',
-            name: '計算機概論',
-            teacher: '王大明 教授',
-            time: '週一第7~8節',
-            location: '明德樓624',
-            type: '必修',
-            credits: '3學分',
-            timeSlots: ['1-07', '1-08'], // 週一 7, 8 節
-        },
-        {
-            id: '2',
-            name: '數位科技概論',
-            teacher: '李小美 教授',
-            time: '週二第3~4節',
-            location: '公館校區D102',
-            type: '選修',
-            credits: '2學分',
-            timeSlots: ['2-03', '2-04'], // 週二 3, 4 節
-        },
-        {
-            id: '3',
-            name: '創意設計實務',
-            teacher: '李大華 教授',
-            time: '週一第2節',
-            location: 'B101',
-            type: '選修',
-            credits: '2學分',
-            timeSlots: ['1-02'], // 週一 2 節
-        },
-    ];
+    // 從 Firebase 即時抓取課程資料
+    useEffect(() => {
+        const subscriber = firestore()
+            .collection('Semesters')
+            .doc(currentSemester) // 使用 Context 裡的 "114-2"
+            .collection('Courses')
+            .onSnapshot(querySnapshot => {
+                const courseList: any[] = [];
+                querySnapshot.forEach(documentSnapshot => {
+                    courseList.push({
+                        ...documentSnapshot.data(),
+                        id: documentSnapshot.id,
+                    });
+                });
+                setCourses(courseList);
+                setLoading(false);
+            }, error => {
+                console.error("Firebase 讀取錯誤: ", error);
+                setLoading(false);
+            });
+
+        return () => subscriber();
+    }, [currentSemester]);
 
     const handleAddCourse = (course: any) => {
-        // 執行加入籃子的動作
         addCourse({
             id: course.id,
-            name: course.name,
+            name: course.title, // 注意：資料庫欄位是 title
             teacher: course.teacher,
             timeSlots: course.timeSlots,
             location: course.location,
         });
-
-        // 提示使用者
-        Alert.alert('加入成功', `已將「${course.name}」匯入待選清單！`);
+        Alert.alert('加入成功', `已將「${course.title}」匯入待選清單！`);
     };
+
+    // 搜尋過濾邏輯
+    const filteredCourses = courses.filter(course => 
+        course.title?.includes(searchText) || course.teacher?.includes(searchText)
+    );
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* 標題與搜尋欄 */}
                 <Text style={styles.mainTitle}>選課</Text>
 
                 <View style={styles.searchSection}>
@@ -73,7 +89,6 @@ const CourseSelectionScreen = () => {
                     </View>
                 </View>
 
-                {/* 篩選標題 */}
                 <View style={styles.filterHeader}>
                     <Text style={styles.filterTitle}>篩選課程</Text>
                     <TouchableOpacity style={styles.advanceSearch}>
@@ -82,64 +97,68 @@ const CourseSelectionScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* 課程卡片列表 */}
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                    {mockCourses.map((course) => (
-                        <View key={course.id} style={styles.courseCard}>
-                            {/* 卡片上方標籤 */}
-                            <View style={styles.tagContainer}>
-                                <View style={[styles.tag, { backgroundColor: '#FFE082' }]}>
-                                    <Text style={styles.tagText}>{course.type}</Text>
-                                </View>
-                                <View style={[styles.tag, { backgroundColor: '#FFCCBC' }]}>
-                                    <Text style={styles.tagText}>{course.credits}</Text>
-                                </View>
-                            </View>
-
-                            {/* 中間資訊區 */}
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.courseName}>{course.name}</Text>
-
-                                    <View style={styles.detailItem}>
-                                        <Ionicons name="time-outline" size={18} color="#333" />
-                                        <Text style={styles.detailText}>{course.time}</Text>
+                {loading ? (
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                        <ActivityIndicator size="large" color="#7B886F" />
+                        <Text style={{ textAlign: 'center', marginTop: 10, color: '#666' }}>正在從雲端抓取課程...</Text>
+                    </View>
+                ) : (
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                        {filteredCourses.map((course) => (
+                            <View key={course.id} style={styles.courseCard}>
+                                <View style={styles.tagContainer}>
+                                    <View style={[styles.tag, { backgroundColor: '#FFE082' }]}>
+                                        <Text style={styles.tagText}>{course.type || '必修'}</Text>
                                     </View>
-
-                                    <View style={styles.detailItem}>
-                                        <Ionicons name="location-outline" size={18} color="#333" />
-                                        <Text style={styles.detailText}>{course.location}</Text>
+                                    <View style={[styles.tag, { backgroundColor: '#FFCCBC' }]}>
+                                        <Text style={styles.tagText}>{course.credits || '0學分'}</Text>
                                     </View>
                                 </View>
 
-                                {/* 教授資訊 (靠右) */}
-                                <View style={styles.teacherInfo}>
-                                    <Ionicons name="person-outline" size={18} color="#333" />
-                                    <Text style={styles.teacherText}>{course.teacher}</Text>
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.courseName}>{course.title}</Text>
+
+                                        <View style={styles.detailItem}>
+                                            <Ionicons name="time-outline" size={18} color="#333" />
+                                            <Text style={styles.detailText}>{course.time}</Text>
+                                        </View>
+
+                                        <View style={styles.detailItem}>
+                                            <Ionicons name="location-outline" size={18} color="#333" />
+                                            {/* 使用代號轉換工具 */}
+                                            <Text style={styles.detailText}>{formatLocation(course.location)}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.teacherInfo}>
+                                        <Ionicons name="person-outline" size={18} color="#333" />
+                                        <Text style={styles.teacherText}>{course.teacher}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.cardFooter}>
+                                    <TouchableOpacity onPress={() => console.log('打開評論區')}>
+                                        <Text style={styles.reviewLink}>查看評論</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.addButton}
+                                        onPress={() => handleAddCourse(course)}
+                                    >
+                                        <Ionicons name="add" size={30} color="#FFF" />
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-
-                            {/* 卡片底部 */}
-                            <View style={styles.cardFooter}>
-                                <TouchableOpacity onPress={() => console.log('打開評論區')}>
-                                    <Text style={styles.reviewLink}>查看評論</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.addButton}
-                                    onPress={() => handleAddCourse(course)}
-                                >
-                                    <Ionicons name="add" size={30} color="#FFF" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    ))}
-                </ScrollView>
+                        ))}
+                    </ScrollView>
+                )}
             </View>
         </SafeAreaView>
     );
 };
 
+// ... styles 保持不變 ...
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -148,7 +167,6 @@ const styles = StyleSheet.create({
     },
     container: { flex: 1, paddingHorizontal: 20 },
     mainTitle: { fontSize: 48, fontWeight: 'bold', color: '#1A1A1A', marginTop: 10, marginBottom: 20 },
-
     searchSection: { marginBottom: 25 },
     searchBar: {
         flexDirection: 'row',
@@ -159,7 +177,6 @@ const styles = StyleSheet.create({
         height: 50,
     },
     input: { flex: 1, fontSize: 16 },
-
     filterHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -169,7 +186,6 @@ const styles = StyleSheet.create({
     filterTitle: { fontSize: 32, fontWeight: 'bold', color: '#1A1A1A' },
     advanceSearch: { flexDirection: 'row', alignItems: 'center' },
     advanceText: { fontSize: 18, marginLeft: 5, color: '#333' },
-
     courseCard: {
         backgroundColor: '#FFF',
         borderRadius: 30,
@@ -189,15 +205,12 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     tagText: { fontSize: 14, fontWeight: '600' },
-
     infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
     courseName: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
     teacherInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
     teacherText: { fontSize: 16, marginLeft: 5 },
-
     detailItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
     detailText: { fontSize: 18, marginLeft: 8 },
-
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
