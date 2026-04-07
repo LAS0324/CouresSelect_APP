@@ -1,10 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { initializeApp } from 'firebase/app';
-import { collection, getFirestore, onSnapshot } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useCourse } from '../context/CourseContext';
-import TopNavBar from '../navigation/TopNavBar';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, onSnapshot, query } from 'firebase/firestore';
 
 
 const firebaseConfig = {
@@ -44,20 +41,19 @@ const CourseSelectionScreen = () => {
     const [loading, setLoading] = useState(true); // 載入狀態
     const { addCourse, currentSemester } = useCourse();
 
-    
+
     // 從 Firebase 即時抓取課程資料
     useEffect(() => {
-        // 1. 建立對應到 Firestore 的集合引用
-        const courseCollection = collection(db, 'Semesters', currentSemester, 'Courses');
+        setLoading(true);
 
-        // 2. 使用 JS SDK 的 onSnapshot 監聽
-        const unsubscribe = onSnapshot(courseCollection, (querySnapshot) => {
+        // 2. 建立一個「有限制」的查詢 (只抓前 50 門課)
+        const courseCollection = collection(db, 'Semesters', currentSemester, 'Courses');
+        const q = query(courseCollection, limit(50));
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const courseList: any[] = [];
             querySnapshot.forEach((doc) => {
-                courseList.push({
-                    ...doc.data(),
-                    id: doc.id,
-                });
+                courseList.push({ ...doc.data(), id: doc.id });
             });
             setCourses(courseList);
             setLoading(false);
@@ -66,7 +62,6 @@ const CourseSelectionScreen = () => {
             setLoading(false);
         });
 
-        // 3. 組件卸載時取消監聽
         return () => unsubscribe();
     }, [currentSemester]);
 
