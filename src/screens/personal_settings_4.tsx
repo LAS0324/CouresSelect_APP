@@ -4,9 +4,9 @@ import TopNavBar from '../navigation/TopNavBar';
 export default function Comment() {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7ED', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }}>
-            <TopNavBar title="課堂評論" />
+            <TopNavBar title="設定" />
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text>評論頁面</Text>
+                <Text>設定</Text>
             </View>
         </SafeAreaView>
     );
