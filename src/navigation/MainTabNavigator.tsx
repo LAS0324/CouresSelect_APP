@@ -32,8 +32,9 @@ const MainTabNavigator = () => {
         >
             <Tab.Screen name="課表" component={TimetableScreen_1} />
             <Tab.Screen name="選課" component={CourseSelection_2} />
-            <Tab.Screen name="課堂評論" component={Personal_Settings_4} />
             <Tab.Screen name="學分檢核" component={Credit_3} />
+            <Tab.Screen name="設定" component={Personal_Settings_4} />
+            
         </Tab.Navigator>
     );
 };
