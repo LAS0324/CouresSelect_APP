@@ -1,8 +1,14 @@
+import React, { useEffect, useState } from 'react';
+import { 
+    ActivityIndicator, Alert, Platform, SafeAreaView, 
+    ScrollView, StatusBar, StyleSheet, Text, TextInput, 
+    TouchableOpacity, View 
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, collection, onSnapshot, query, limit } from 'firebase/firestore';
 import { useCourse } from '../context/CourseContext';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, query } from 'firebase/firestore';
-
+import TopNavBar from '../navigation/TopNavBar';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
