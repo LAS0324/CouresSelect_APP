@@ -1,13 +1,38 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import TopNavBar from '../navigation/TopNavBar';
 import { COLORS } from '../styles/theme';
+
+const darkModeSvgData = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMjFDOS41IDIxIDcuMzc1IDIwLjEyNSA1LjYyNSAxOC4zNzVDMy44NzUgMTYuNjI1IDMgMTQuNSAzIDEyQzMgOS41IDMuODc1IDcuMzc1IDUuNjI1IDUuNjI1QzcuMzc1IDMuODc1IDkuNSAzIDEyIDNDMTIuMjMzMyAzIDEyLjQ2MjUgMy4wMDgzMyAxMi42ODc1IDMuMDI1QzEyLjkxMjUgMy4wNDE2NyAxMy4xMzMzIDMuMDY2NjcgMTMuMzUgMy4xQzEyLjY2NjcgMy41ODMzMyAxMi4xMjA4IDQuMjEyNSAxMS43MTI1IDQuOTg3NUMxMS4zMDQyIDUuNzYyNSAxMS4xIDYuNiAxMS4xIDcuNUMxMS4xIDkgMTEuNjI1IDEwLjI3NSAxMi42NzUgMTEuMzI1QzEzLjcyNSAxMi4zNzUgMTUgMTIuOSAxNi41IDEyLjlDMTcuNDE2NyAxMi45IDE4LjI1ODMgMTIuNjk1OCAxOS4wMjUgMTIuMjg3NUMxOS43OTE3IDExLjg3OTIgMjAuNDE2NyAxMS4zMzMzIDIwLjkgMTAuNjVDMjAuOTMzMyAxMC44NjY3IDIwLjk1ODMgMTEuMDg3NSAyMC45NzUgMTEuMzEyNUMyMC45OTE3IDExLjUzNzUgMjEgMTEuNzY2NyAyMSAxMkMyMSAxNC41IDIwLjEyNSAxNi42MjUgMTguMzc1IDE4LjM3NUMxNi42MjUgMjAuMTI1IDE0LjUgMjEgMTIgMjFaTTEyIDE5QzEzLjQ2NjcgMTkgMTQuNzgzMyAxOC41OTU4IDE1Ljk1IDE3Ljc4NzVDMTcuMTE2NyAxNi45NzkyIDE3Ljk2NjcgMTUuOTI1IDE4LjUgMTQuNjI1QzE4LjE2NjcgMTQuNzA4MyAxNy44MzMzIDE0Ljc3NSAxNy41IDE0LjgyNUMxNy4xNjY3IDE0Ljg3NSAxNi44MzMzIDE0LjkgMTYuNSAxNC45QzE0LjQ1IDE0LjkgMTIuNzA0MiAxNC4xNzkyIDExLjI2MjUgMTIuNzM3NUM5LjgyMDgzIDExLjI5NTggOS4xIDkuNTUgOS4xIDcuNUM5LjEgNy4xNjY2NyA5LjEyNSA2LjgzMzMzIDkuMTc1IDYuNUM5LjIyNSA2LjE2NjY3IDkuMjkxNjcgNS44MzMzMyA5LjM3NSA1LjVDOC4wNzUgNi4wMzMzMyA3LjAyMDgzIDYuODgzMzMgNi4yMTI1IDguMDVDNS40MDQxNyA5LjIxNjY3IDUgMTAuNTMzMyA1IDEyQzUgMTMuOTMzMyA1LjY4MzMzIDE1LjU4MzMgNy4wNSAxNi45NUM4LjQxNjY3IDE4LjMxNjcgMTAuMDY2NyAxOSAxMiAxOVoiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=";
+const chevronForwardSvgData = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIuNiAxMkw4IDcuNEw5LjQgNkwxNS40IDEyTDkuNCAxOEw4IDE2LjZMMTIuNiAxMloiIGZpbGw9IiMwMDAwMDAiLz48L3N2Zz4=";
+
+const setingOptions = [
+    {
+        title: "教學導覽",
+        icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDdDMTIgNS45MzkxMyAxMS41Nzg2IDQuOTIxNzIgMTAuODI4NCA0LjE3MTU3QzEwLjA3ODMgMy40MjE0MyA5LjA2MDg3IDMgOCAzSDJWMThIOUM5Ljc5NTY1IDE4IDEwLjU1ODcgMTguMzE2MSAxMS4xMjEzIDE4Ljg3ODdDMTEuNjgzOSAxOS40NDEzIDEyIDIwLjIwNDQgMTIgMjFNMTIgN1YyMU0xMiA3QzEyIDUuOTM5MTMgMTIuNDIxNCA0LjkyMTcyIDEzLjE3MTYgNC4xNzE1N0MxMy45MjE3IDMuNDIxNDMgMTQuOTM5MSAzIDE2IDNIMjJWMThIMTVDMTQuMjA0NCAxOCAxMy40NDEzIDE4LjMxNjEgMTIuODc4NyAxOC44Nzg3QzEyLjMxNjEgMTkuNDQxMyAxMiAyMC4yMDQ0IDEyIDIxIiBzdHJva2U9IiNGRkZFRkEiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+"
+    },
+    {
+        title: "學校設置",
+        icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDE3VjEwLjFMMTIgMTVMMSA5TDEyIDNMMjMgOVYxN0gyMVpNMTIgMjFMNSAxNy4yVjEyLjJMMTIgMTZMMTkgMTIuMlYxNy4yTDEyIDIxWiIgZmlsbD0iI0ZGRkVGQSIvPgo8L3N2Zz4="
+    },
+    {
+        title: "關於應用程式",
+        icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzExN18xNDEwKSI+CjxwYXRoIGQ9Ik0xMiAxNlYxMk0xMiA4SDEyLjAxTTIyIDEyQzIyIDE3LjUyMjggMTcuNTIyOCAyMiAxMiAyMkM2LjQ3NzE1IDIyIDIgMTcuNTIyOCAyIDEyQzIgNi40NzcxNSA2LjQ3NzE1IDIgMTIgMkMxNy41MjI4IDIgMjIgNi40NzcxNSAyMiAxMloiIHN0cm9rZT0iI0ZGRkVGQSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzExN18xNDEwIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPg=="
+    }
+];
+
+const logoutOption = {
+    title: "登出",
+    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwLjE1IDEzSDhWMTFIMjAuMTVMMTguNiA5LjQ1TDIwIDhMMjQgMTJMMjAgMTZMMTguNiAxNC41NUwyMC4xNSAxM1pNMTUgOVY1SDVWMTlIMTVWMTVIMTdWMTlDMTcgMTkuNTUgMTYuODA0MiAyMC4wMjA4IDE2LjQxMjUgMjAuNDEyNUMxNi4wMjA4IDIwLjgwNDIgMTUuNTUgMjEgMTUgMjFINUM0LjQ1IDIxIDMuOTc5MTcgMjAuODA0MiAzLjU4NzUgMjAuNDEyNUMzLjE5NTgzIDIwLjAyMDggMyAxOS41NSAzIDE5VjVDMyA0LjQ1IDMuMTk1ODMgMy45NzkxNyAzLjU4NzUgMy41ODc1QzMuOTc5MTcgMy4xOTU4MyA0LjQ1IDMgNSAzSDE1QzE1LjU1IDMgMTYuMDIwOCAzLjE5NTgzIDE2LjQxMjUgMy41ODc1QzE2LjgwNDIgMy45NzkxNyAxNyA0LjQ1IDE3IDVWOUgxNVoiIGZpbGw9IiNGRkZFRkEiLz4KPC9zdmc+"
+};
 
 export default function PersonalSettings() {
     const [name, setName] = useState('王辰左');
     const [tempName, setTempName] = useState('');
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     const handleEditPress = () => {
         setTempName(name); // 點擊時，把現在的名字帶入編輯框
@@ -64,22 +89,81 @@ export default function PersonalSettings() {
                 {/* 班級、學號、學院標籤區塊 */}
                 <View style={styles.tagsContainer}>
                     <View style={styles.tagBadge}>
+                        <Text style={styles.tagText}>數位科技設計學系</Text>
+                    </View>
+                    <View style={styles.tagBadge}>
                         <Text style={styles.tagText}>數位二甲</Text>
                     </View>
                     <View style={styles.tagBadge}>
                         <Text style={styles.tagText}>111319100</Text>
                     </View>
-                    <View style={styles.tagBadge}>
-                        <Text style={styles.tagText}>理學院</Text>
-                    </View>
                 </View>
 
                 {/* 330px 設定選項容器 */}
                 <View style={[styles.mainSettingsContainer, { backgroundColor: COLORS.settingsCardBg }]}>
-                    {/* 這裡可以放設定項目 */}
+                    <View style={[styles.settingRow, { marginTop: 20 }]}>
+                        <View style={[styles.settingIconCircle, { backgroundColor: COLORS.darkModeIconBg }]}>
+                            <Image 
+                                source={{ uri: darkModeSvgData }} 
+                                style={{ width: 28, height: 28, tintColor: COLORS.darkModeIcon }} 
+                                contentFit="contain" 
+                            />
+                        </View>
+                        <View style={styles.settingTextContainer}>
+                            <Text style={styles.settingText}>深夜模式</Text>
+                        </View>
+                        <Switch 
+                            value={isDarkMode} 
+                            onValueChange={setIsDarkMode} 
+                            style={styles.settingSwitch}
+                        />
+                    </View>
+
+                    {/* 其他四個一樣的選項 */}
+                    {setingOptions.map((option, index) => (
+                        <TouchableOpacity key={index} style={styles.settingRow} activeOpacity={0.7}>
+                            <View style={[styles.settingIconCircle, { backgroundColor: COLORS.settingIconBg }]}>
+                                <Image 
+                                    source={{ uri: option.icon }} 
+                                    style={{ width: 28, height: 28 }} 
+                                    contentFit="contain" 
+                                />
+                            </View>
+                            <View style={styles.settingTextContainer}>
+                                <Text style={styles.settingText}>{option.title}</Text>
+                            </View>
+                            <Image 
+                                source={{ uri: chevronForwardSvgData }} 
+                                style={[styles.forwardIcon, { tintColor: COLORS.forwardIconColor }]} 
+                                contentFit="contain" 
+                            />
+                        </TouchableOpacity>
+                    ))}
+
+                </View>
+
+                {/* 登出獨立區域 */}
+                <View style={[styles.mainSettingsContainer, { backgroundColor: COLORS.settingsCardBg, marginTop: 20, paddingBottom: 0 }]}>
+                    <TouchableOpacity style={[styles.settingRow, { marginTop: 20, marginBottom: 20 }]} activeOpacity={0.7}>
+                        <View style={[styles.settingIconCircle, { backgroundColor: COLORS.settingIconBg }]}>
+                            <Image 
+                                source={{ uri: logoutOption.icon }} 
+                                style={{ width: 28, height: 28 }} 
+                                contentFit="contain" 
+                            />
+                        </View>
+                        <View style={styles.settingTextContainer}>
+                            <Text style={styles.settingText}>{logoutOption.title}</Text>
+                        </View>
+                        <Image 
+                            source={{ uri: chevronForwardSvgData }} 
+                            style={[styles.forwardIcon, { tintColor: COLORS.forwardIconColor }]} 
+                            contentFit="contain" 
+                        />
+                    </TouchableOpacity>
                 </View>
                 
-                <Text style={{ marginTop: 20 }}>設定內容</Text>
+            
             </ScrollView>
 
             {/* 彈出式修改名字對話框 (Modal) */}
@@ -225,8 +309,9 @@ const styles = StyleSheet.create({
     },
     mainSettingsContainer: {
         width: 330,
-        height: 500, // 先給定一個高度方便顯示
-        marginTop: 40,
+        height: 'auto', // 讓內容撐開
+        paddingBottom: 20, // 底部留點空間
+        marginTop: 30,
         borderRadius: 12,
         // pure black stroke (border), opacity 20%
         borderWidth: 1,
@@ -238,7 +323,40 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 4, // for android
     },
-
+    settingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: 290, // 從 310 改為 300，意即左右再往內各縮 5px
+        height: 48, // 放大了圖像到 48
+        marginTop: 40, // 加大間距（原為 20）
+        alignSelf: 'center', // 置中於 330px 的方格內
+    },
+    settingIconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 24, // 變成圓形
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    settingTextContainer: {
+        height: 30,
+        marginLeft: 10,
+        justifyContent: 'center',
+    },
+    settingText: {
+        fontSize: 16, // 從 16 變成 24
+        color: '#000000', // 可在 theme 設定
+    },
+    settingSwitch: {
+        marginLeft: 'auto', // 推到最右邊
+        alignSelf: 'center', // 強制垂直置中
+        transform: [{ scale: 0.9 }], // 將 0.8 改成 0.95 放大一點
+    },    forwardIcon: {
+        marginLeft: 'auto', // 把箭頭推到最右邊
+        width: 24,
+        height: 24,
+        alignSelf: 'center',
+    },
     // --- 彈出層 (iOS 樣式對話框) 的樣式 ---
     modalOverlay: {
         flex: 1,
