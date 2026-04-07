@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ScrollView, Switch, Platform, StatusBar } from 'react-native';
-import { COLORS } from '../styles/theme';
+import React, { useEffect, useState } from 'react';
+import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useCourse } from '../context/CourseContext'; // 引入共享籃子
+import TopNavBar from '../navigation/TopNavBar';
 
 // 根據「3/23-3/29 為第五週」反推，第一週週一為 2026-02-23
 const SEMESTER_START_DATE = new Date('2026-02-23');
@@ -66,13 +66,13 @@ const TimetableScreen = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            <TopNavBar title="課表" />
             <View style={styles.container}>
 
                 {/* Header 部分 */}
                 <View style={styles.header}>
                     <View>
-                        <Text style={styles.mainTitle}>課表</Text>
-                        <Text style={styles.subTitle}>114下學期第{currentWeek}週</Text>
+                        <Text style={styles.subTitle}>114下學期 第{currentWeek}週</Text>
                     </View>
                     <View style={styles.switchContainer}>
                         <Text style={styles.switchLabel}>一週預覽模式</Text>

@@ -6,4 +6,6 @@ export const COLORS = {
     text: '#333333',       // 深灰文字
     placeholder: '#999999',
     accent: '#F3E99F',     // 淡淡的黃色 (點綴用)
+    navBarIcon: '#000000', // 導覽列圖示顏色
+    navBarText: '#000000', // 導覽列標題字體顏色
 };

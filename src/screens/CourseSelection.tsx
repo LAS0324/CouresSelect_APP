@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useCourse } from '../context/CourseContext';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, getFirestore, onSnapshot } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCourse } from '../context/CourseContext';
+import TopNavBar from '../navigation/TopNavBar';
 
 
 const firebaseConfig = {
@@ -87,8 +88,8 @@ const CourseSelectionScreen = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            <TopNavBar title="選課" />
             <View style={styles.container}>
-                <Text style={styles.mainTitle}>選課</Text>
 
                 <View style={styles.searchSection}>
                     <View style={styles.searchBar}>

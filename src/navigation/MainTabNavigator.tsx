@@ -1,16 +1,20 @@
-import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../styles/theme';
 
 // 引入你的四個頁面
-import TimetableScreen from '../screens/Timetable';
+import Comment from '../screens/Comment'; // 需建立
 import CourseSelection from '../screens/CourseSelection'; // 需建立
-import Comment from '../screens/Comment';               // 需建立
-import Credit from '../screens/Credit';               // 需建立
+import Credit from '../screens/Credit'; // 需建立
+import TimetableScreen from '../screens/Timetable';
+
 
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tab.Navigator
             screenOptions={{
@@ -21,8 +25,8 @@ const MainTabNavigator = () => {
                     backgroundColor: '#FFF',
                     borderTopWidth: 0,
                     elevation: 10,
-                    height: 60,
-                    paddingBottom: 10,
+                    height: 55 + insets.bottom,
+                    paddingBottom:10,
                 }
             }}
         >
