@@ -4,10 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../styles/theme';
 
 // 引入你的四個頁面
-import CourseSelection from '../screens/CourseSelection_2'; // 需建立
-import Credit from '../screens/Credit_3'; // 需建立
-import Comment from '../screens/Settings_4'; // 需建立
-import TimetableScreen from '../screens/Timetable_1';
+import CourseSelection_2 from '../screens/CourseSelection_2'; // 需建立
+import Credit_3 from '../screens/Credit_3'; // 需建立
+import Personal_Settings_4 from '../screens/personal_settings_4'; // 需建立
+import TimetableScreen_1 from '../screens/Timetable_1';
 
 
 const Tab = createBottomTabNavigator();
@@ -30,10 +30,10 @@ const MainTabNavigator = () => {
                 }
             }}
         >
-            <Tab.Screen name="課表" component={TimetableScreen} />
-            <Tab.Screen name="選課" component={CourseSelection} />
-            <Tab.Screen name="課堂評論" component={Comment} />
-            <Tab.Screen name="學分檢核" component={Credit} />
+            <Tab.Screen name="課表" component={TimetableScreen_1} />
+            <Tab.Screen name="選課" component={CourseSelection_2} />
+            <Tab.Screen name="課堂評論" component={Personal_Settings_4} />
+            <Tab.Screen name="學分檢核" component={Credit_3} />
         </Tab.Navigator>
     );
 };
