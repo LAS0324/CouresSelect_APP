@@ -52,7 +52,7 @@ export default function PersonalSettings() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <TopNavBar title="設定" showMenu={false} showInfo={false} />
+            <TopNavBar title="設定" showMenu={false} showInfo={false} showRightMenu={true} />
             
             <ScrollView contentContainerStyle={styles.container}>
                 {/* 頭像與編輯圓圈組合區 */}
@@ -70,14 +70,10 @@ export default function PersonalSettings() {
                     </View>
                 </View>
                 
-                {/* 姓名與編輯區 (使用 TouchableOpacity 包起來讓整個範圍可點，並利用 row 讓筆跟著字體大小移動) */}
+                {/* 姓名區 */}
                 <TouchableOpacity onPress={handleEditPress} style={styles.nameContainer} activeOpacity={0.7}>
                     <View style={styles.nameBox}>
                         <Text style={styles.nameText}>{name}</Text>
-                    </View>
-                    <View style={styles.editIconContainer}>
-                        {/* 使用 Ionicons 來暫代 edit.svg，大小 24x24 */}
-                        <Ionicons name="pencil" size={24} color={COLORS.nameEditIcon} />
                     </View>
                 </TouchableOpacity>
 

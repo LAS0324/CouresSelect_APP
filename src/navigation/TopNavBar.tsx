@@ -1,16 +1,19 @@
 import { Ionicons } from '@expo/vector-icons'; // 使用已經安裝的 vector-icons 來暫代 SVG
+import { Image } from 'expo-image';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
+const menuSvgData = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyAxOFYxNkgyMVYxOEgzWk0zIDEzVjExSDIxVjEzSDNaTTMgOFY2SDIxVjhIM1oiIGZpbGw9IiM3MTRDMEYiLz48L3N2Zz4=";
 
 interface TopNavBarProps {
     title?: string;
     showMenu?: boolean;
     showInfo?: boolean;
+    showRightMenu?: boolean;
 }
 
-const TopNavBar: React.FC<TopNavBarProps> = ({ title = '選課', showMenu = true, showInfo = true }) => {
+const TopNavBar: React.FC<TopNavBarProps> = ({ title = '選課', showMenu = true, showInfo = true, showRightMenu = false }) => {
     return (
         <View style={styles.container}>
             {/* 最左邊：Menu 圖示 (24x24, 純黑色) */}
@@ -27,14 +30,19 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ title = '選課', showMenu = true
                 <Text style={styles.centerText}>{title}</Text>
             </View>
 
-            {/* 最右邊：Notifications 跟 Info 圖示 (24x24, 純黑色) */}
+            {/* 最右邊：Notifications, Info, Menu 圖示 */}
             <View style={styles.rightContainer}>
-                <TouchableOpacity activeOpacity={0.7} style={showInfo ? styles.iconMargin : undefined}>
+                {showInfo && (
+                    <TouchableOpacity activeOpacity={0.7} style={styles.iconMargin}>
+                        <Ionicons name="information-circle-outline" size={24} color={COLORS.navBarIcon} />
+                    </TouchableOpacity>
+                )}
+                <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined}>
                     <Ionicons name="notifications-outline" size={24} color={COLORS.navBarIcon} />
                 </TouchableOpacity>
-                {showInfo && (
+                {showRightMenu && (
                     <TouchableOpacity activeOpacity={0.7}>
-                        <Ionicons name="information-circle-outline" size={24} color={COLORS.navBarIcon} />
+                        <Image source={{ uri: menuSvgData }} style={{ width: 24, height: 24, tintColor: COLORS.navBarIcon }} contentFit="contain" />
                     </TouchableOpacity>
                 )}
             </View>
