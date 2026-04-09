@@ -28,9 +28,9 @@ const MainTabNavigator = () => {
                     backgroundColor: '#FFF',
                     borderTopWidth: 0,
                     elevation: 10,
-                    height: 55 + insets.bottom,
+                    height: 50 + insets.bottom,
                     paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-                    paddingTop: 10,
+                    paddingTop: 5,
                 },
                 tabBarItemStyle: {
                     justifyContent: 'center',
