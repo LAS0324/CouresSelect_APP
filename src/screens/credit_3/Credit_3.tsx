@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import TopNavBar from '../navigation/TopNavBar';
+import TopNavBar from '../../navigation/TopNavBar';
 
 export default function Credit({ navigation }: any) {
     const handlePress = (title: string) => {

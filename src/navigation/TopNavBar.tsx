@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 20, // 左右留點邊距
         backgroundColor: 'transparent',
+        marginTop: 8, // 讓導覽列往下一點
     },
     centerContainer: {
         position: 'absolute',
