@@ -13,11 +13,11 @@ const db = admin.firestore();
  * 1. 讀取並解析 JSON 資料
  * 加入了 .replace(/^\uFEFF/, '') 來剔除可能導致報錯的隱形 BOM 字元
  */
-const rawContent = fs.readFileSync('./courses114-1.json', 'utf8');
+const rawContent = fs.readFileSync('./everyone_need_18.json', 'utf8');
 const rawData = JSON.parse(rawContent.replace(/^\uFEFF/, ''));
 
 // 指令可以帶學期參數，例如: node import-data.js 115-1
-const targetSemester = process.argv[2] || '114-1';
+const targetSemester = process.argv[2] || 'everyone_need_18';
 
 /**
  * 2. 時間轉換機：把 "四(05,06,07)" 轉成 ["4-05", "4-06", "4-07"]
@@ -30,12 +30,15 @@ function parseTimeSlots(timeStr) {
     const dayChar = timeStr[0];
     const day = dayMap[dayChar];
 
-    // 使用正則表達式抓取括號內的數字
-    const slots = timeStr.match(/\d+/g);
+    // 使用正則表達式抓取括號內的英數字 (例如 0E, 09)
+    const slots = timeStr.match(/[0-9A-Za-z]+/g);
 
     if (!day || !slots) return [];
 
-    return slots.map(s => `${day}-${s.padStart(2, '0')}`); // 確保是 "4-05" 而不是 "4-5"
+    // 第一個元素通常是星期幾的中文(或不被抓到)，我們過濾掉非節次的字串
+    const validSlots = slots.filter(s => s.length > 0 && s !== dayChar);
+
+    return validSlots.map(s => `${day}-${s.padStart(2, '0')}`); // 確保是 "4-05" 或 "4-0E"
 }
 
 /**
