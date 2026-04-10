@@ -2,14 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function CreditDetail({ route, navigation }: any) {
-    const title = route.params?.title || '學分細節';
+export default function CreditDetailFlexible({ navigation }: any) {
+    const title = '彈性課程';
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
             
-            {/* Custom Header for Detail Page */}
             <View style={styles.header}>
                 <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color="#654321" />
@@ -17,8 +16,7 @@ export default function CreditDetail({ route, navigation }: any) {
                 <Text style={styles.headerTitle}>{title}</Text>
                 <View style={styles.rightPlaceholder} />
             </View>
-
-            {/* Search Bar */}
+            
             <View style={styles.searchContainer}>
                 <View style={styles.searchBox}>
                     <Ionicons name="search" size={22} color="#888" style={styles.searchIcon} />
@@ -30,7 +28,6 @@ export default function CreditDetail({ route, navigation }: any) {
                 </View>
             </View>
 
-            {/* List Content Placeholder */}
             <View style={styles.content}>
                 
             </View>
@@ -41,7 +38,7 @@ export default function CreditDetail({ route, navigation }: any) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#FFFFFF', // 從圖片看起來是純白底
+        backgroundColor: '#FFFFFF',
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     },
     header: {
@@ -53,13 +50,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     backButton: {
-        width: 40, // 增加感應區
+        width: 40,
         alignItems: 'flex-start',
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#654321', // 咖啡色標題
+        color: '#654321',
     },
     rightPlaceholder: {
         width: 40,
