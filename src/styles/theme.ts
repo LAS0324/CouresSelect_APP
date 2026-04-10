@@ -39,6 +39,8 @@ export const COLORS = {
         '環境與自然科學': { bg: '#B5EAD7', border: '#92C4A8', text: '#000000' }, // 薄荷綠色系
         '數位科技與傳播': { bg: '#C7CEEA', border: '#9CA4C4', text: '#000000' }, // 寶寶藍色系
         '外國語言與文化': { bg: '#EBD4E8', border: '#C4A8C4', text: '#000000' }, // 淺紫色系
+        '體育興趣': { bg: '#FAD6A5', border: '#E0B584', text: '#000000' }, // 淺橘黃色
+        '其他': { bg: '#EAEAEA', border: '#CCCCCC', text: '#333333' }, // 灰色
         '已選取': { bg: '#ebf7ee', border: '#23A85B', text: '#000000' }, // 綠色系 (用於已選取標籤)
         '全部': { bg: '#ffffff', border: '#CCCCCC', text: '#333333' }, // 灰色系 (預設/全部)
     }

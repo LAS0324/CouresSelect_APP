@@ -4,14 +4,14 @@ import { useCourse } from '../../context/CourseContext';
 import TopNavBar from '../../navigation/TopNavBar';
 
 export default function Credit({ navigation }: any) {
-    const { generalCreditsTotal } = useCourse();
+    const { generalCreditsTotal, mustCreditsTotal } = useCourse();
 
     const handlePress = (route: string) => {
         navigation.navigate(route);
     };
 
     // 其他學分暫時寫死
-    const mustCredits = 12;
+    const mustCredits = mustCreditsTotal || 0;
     const arrayCredits = 46;
     const flexibleCredits = 0;
     const currentTotal = mustCredits + generalCreditsTotal + arrayCredits + flexibleCredits;

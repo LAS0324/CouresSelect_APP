@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState, useRef } from 'react';
-import { ActivityIndicator, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, Animated } from 'react-native';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, FlatList, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useCourse } from '../../context/CourseContext';
 import { COLORS } from '../../styles/theme';
 
@@ -20,9 +20,34 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 
-const CATEGORIES = [
-    '全部',
-    '已選取',
+// ---- 優化課程卡片渲染 ----
+// 使用 React.memo 包裝每一個 Course 的元件，這樣在勾選一個課程時，不會導致畫面中上百個其他沒變動的課程被重新渲染。
+const CourseItem = memo(({ course, isSelected, toggleCourse }: { course: any; isSelected: boolean; toggleCourse: (id: string) => void }) => {
+    return (
+        <TouchableOpacity 
+            style={[styles.courseCard, isSelected && styles.courseCardSelected]} 
+            onPress={() => toggleCourse(course.id)}
+            activeOpacity={0.8}  // 調整點擊透明度
+        >
+            <Ionicons 
+                name={isSelected ? "checkbox" : "square-outline"} 
+                size={28} 
+                color={isSelected ? "#23A85B" : "#111"} 
+                style={styles.checkboxIcon}
+            />
+            <View style={styles.courseInfo}>
+                <Text style={styles.courseTitle}>{course.title}</Text>
+                <Text style={styles.courseDomain}>{course.className}</Text>
+            </View>
+            <Text style={styles.courseCredits}>{course.credits}</Text>
+        </TouchableOpacity>
+    );
+}, (prevProps, nextProps) => {
+    // 只有當此課程的 isSelected 狀態改變時才重新渲染
+    return prevProps.isSelected === nextProps.isSelected;
+});
+
+const DOMAINS = [
     '生涯職能',
     '品德、思考與社會',
     '文史哲領域',
@@ -30,6 +55,13 @@ const CATEGORIES = [
     '環境與自然科學',
     '數位科技與傳播',
     '外國語言與文化'
+];
+
+const CATEGORIES = [
+    '全部',
+    '已選取',
+    ...DOMAINS,
+    '其他'
 ];
 
 export default function CreditDetailGeneral({ navigation }: any) {
@@ -44,7 +76,9 @@ export default function CreditDetailGeneral({ navigation }: any) {
     
     // 初始化用 global state，若更改後尚未儲存就存在本地
     const [checkedCourses, setCheckedCourses] = useState<{ [key: string]: boolean }>(passedGeneralCourses || {});
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // 同步計算：直接檢查是否與原本有差異，不再依賴 useEffect，消除按鈕出現的延遲感/閃爍
+    const hasUnsavedChanges = JSON.stringify(checkedCourses) !== JSON.stringify(passedGeneralCourses || {});
 
     // Toast 提示相關狀態
     const [showToast, setShowToast] = useState(false);
@@ -58,8 +92,13 @@ export default function CreditDetailGeneral({ navigation }: any) {
                 const snapshot = await getDocs(coursesRef);
                 const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // 通識課程通常要有領域名稱，確保沒壞掉
-                const filteredData = data.filter((c: any) => c.className && c.className.length > 0);
+                // 通識課程通常要有領域名稱，確保沒壞掉，同時統一 className 的命名
+                const filteredData = data.filter((c: any) => c.className && c.className.length > 0).map((c: any) => {
+                    if (c.className && c.className.includes('品德思考與社會')) {
+                        return { ...c, className: c.className.replace('品德思考與社會', '品德、思考與社會') };
+                    }
+                    return c;
+                });
                 
                 setCourses(filteredData);
             } catch (error) {
@@ -72,18 +111,13 @@ export default function CreditDetailGeneral({ navigation }: any) {
         fetchCourses();
     }, []);
 
-    // 檢查是否與原本有差異
-    useEffect(() => {
-        const isDifferent = JSON.stringify(checkedCourses) !== JSON.stringify(passedGeneralCourses || {});
-        setHasUnsavedChanges(isDifferent);
-    }, [checkedCourses, passedGeneralCourses]);
-
-    const toggleCourse = (courseId: string) => {
+    // 使用 useCallback 避免 FlatList 的 items 需要被一直創建新函數，提升運作效能
+    const toggleCourse = useCallback((courseId: string) => {
         setCheckedCourses(prev => ({
             ...prev,
             [courseId]: !prev[courseId]
         }));
-    };
+    }, []);
 
     const confirmChanges = () => {
         // 計算勾起的課程總學分數
@@ -105,10 +139,10 @@ export default function CreditDetailGeneral({ navigation }: any) {
         fadeAnim.setValue(1); // 立即設為完全清楚
 
         Animated.sequence([
-            Animated.delay(2000), // 展示 2 秒
+            Animated.delay(1000), // 縮短展示時間為 1 秒 (原本是 2 秒)
             Animated.timing(fadeAnim, {
                 toValue: 0,
-                duration: 1000, // 接著用 1 秒淡出
+                duration: 500, // 將淡出動畫縮短為 0.5 秒 (原本是 1 秒)
                 useNativeDriver: true,
             })
         ]).start(() => {
@@ -130,16 +164,33 @@ export default function CreditDetailGeneral({ navigation }: any) {
         
         // 2. 分類比對 (檢查 className)
         let matchTab = true;
+        const normalizedClassName = course.className ? course.className.replace(/、/g, '') : '';
+
         if (activeTab === '已選取') {
             // 顯示目前有勾選的，或者是「原本就已經儲存為已選取」的課程
             // 這樣在「已選取」頁面取消勾選時，它才不會馬上消失，直到按下儲存才會真正移除
             matchTab = !!checkedCourses[course.id] || !!passedGeneralCourses[course.id];
+        } else if (activeTab === '其他') {
+            matchTab = !DOMAINS.some(domain => normalizedClassName.includes(domain.replace(/、/g, '')));
         } else if (activeTab !== '全部') {
             // 這個簡單的 includes 通常能滿足 '品德、思考與社會', '文史哲領域' 等字眼的匹配
-            matchTab = course.className && course.className.includes(activeTab.replace('、', ''));
+            matchTab = normalizedClassName.includes(activeTab.replace(/、/g, ''));
         }
         
         return matchSearch && matchTab;
+    }).sort((a, b) => {
+        const getWeight = (className: string) => {
+            const normalized = className ? className.replace(/、/g, '') : '';
+            if (!normalized) return 999;
+            for (let i = 0; i < DOMAINS.length; i++) {
+                if (normalized.includes(DOMAINS[i].replace(/、/g, ''))) return i;
+            }
+            return 999; // 都不屬於 DOMAINS，就是 999
+        };
+        const weightA = getWeight(a.className);
+        const weightB = getWeight(b.className);
+        if (weightA !== weightB) return weightA - weightB;
+        return (a.title || '').localeCompare(b.title || '');
     });
 
     return (
@@ -200,33 +251,23 @@ export default function CreditDetailGeneral({ navigation }: any) {
                 {loading ? (
                     <ActivityIndicator size="large" color="#23A85B" style={{ marginTop: 40 }} />
                 ) : (
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        {displayedCourses.map((course: any) => {
-                            const isSelected = checkedCourses[course.id];
-                            return (
-                                <TouchableOpacity 
-                                    key={course.id} 
-                                    style={[styles.courseCard, isSelected && styles.courseCardSelected]} 
-                                    onPress={() => toggleCourse(course.id)}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons 
-                                        name={isSelected ? "checkbox" : "square-outline"} 
-                                        size={28} 
-                                        color={isSelected ? "#23A85B" : "#111"} 
-                                        style={styles.checkboxIcon}
-                                    />
-                                    <View style={styles.courseInfo}>
-                                        <Text style={styles.courseTitle}>{course.title}</Text>
-                                        <Text style={styles.courseDomain}>{course.className}</Text>
-                                    </View>
-                                    <Text style={styles.courseCredits}>{course.credits}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                        {/* 留點下方空間不被懸浮按鈕擋住 */}
-                        <View style={{ height: 80 }} />
-                    </ScrollView>
+                    <FlatList
+                        data={displayedCourses}
+                        keyExtractor={(item) => item.id}
+                        initialNumToRender={15}
+                        maxToRenderPerBatch={20}
+                        windowSize={5}
+                        removeClippedSubviews={true}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 80 }}
+                        renderItem={({ item: course }) => (
+                            <CourseItem 
+                                course={course} 
+                                isSelected={!!checkedCourses[course.id]} 
+                                toggleCourse={toggleCourse} 
+                            />
+                        )}
+                    />
                 )}
             </View>
 

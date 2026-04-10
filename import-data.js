@@ -13,11 +13,11 @@ const db = admin.firestore();
  * 1. 讀取並解析 JSON 資料
  * 加入了 .replace(/^\uFEFF/, '') 來剔除可能導致報錯的隱形 BOM 字元
  */
-const rawContent = fs.readFileSync('./everyone_need_18.json', 'utf8');
+const rawContent = fs.readFileSync('./MustCourse.json', 'utf8');
 const rawData = JSON.parse(rawContent.replace(/^\uFEFF/, ''));
 
 // 指令可以帶學期參數，例如: node import-data.js 115-1
-const targetSemester = process.argv[2] || 'everyone_need_18';
+const targetSemester = process.argv[2] || 'MustCourse';
 
 /**
  * 2. 時間轉換機：把 "四(05,06,07)" 轉成 ["4-05", "4-06", "4-07"]
