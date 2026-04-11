@@ -32,14 +32,14 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ title = '選課', showMenu = true
 
             {/* 最右邊：Notifications, Info, Menu 圖示 */}
             <View style={styles.rightContainer}>
+                <TouchableOpacity activeOpacity={0.7} style={showInfo || showRightMenu ? styles.iconMargin : undefined}>
+                    <Ionicons name="notifications-outline" size={24} color={COLORS.navBarIcon} />
+                </TouchableOpacity>
                 {showInfo && (
-                    <TouchableOpacity activeOpacity={0.7} style={styles.iconMargin}>
+                    <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined}>
                         <Ionicons name="information-circle-outline" size={24} color={COLORS.navBarIcon} />
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined}>
-                    <Ionicons name="notifications-outline" size={24} color={COLORS.navBarIcon} />
-                </TouchableOpacity>
                 {showRightMenu && (
                     <TouchableOpacity activeOpacity={0.7}>
                         <Image source={{ uri: menuSvgData }} style={{ width: 24, height: 24, tintColor: COLORS.navBarIcon }} contentFit="contain" />
