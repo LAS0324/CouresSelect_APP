@@ -1,13 +1,49 @@
 import { Stack } from 'expo-router';
-import React, { useState } from 'react';
-import MainTabNavigator from '../src/navigation/MainTabNavigator'; // 等下要建立
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import React, { useEffect, useState } from 'react';
+import { CourseProvider } from '../src/context/CourseContext';
+import MainTabNavigator from '../src/navigation/MainTabNavigator';
 import LoginScreen from '../src/screens/Login';
 import SetupScreen from '../src/screens/Setup';
-import { CourseProvider } from '../src/context/CourseContext';
+
+// 確保 Firebase 在這裡也有初始化
+const firebaseConfig = {
+    apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
+    authDomain: "courseapp-788ad.firebaseapp.com",
+    projectId: "courseapp-788ad",
+    storageBucket: "courseapp-788ad.firebasestorage.app",
+    messagingSenderId: "650322013005",
+    appId: "1:650322013005:web:5855bdc8aa1c0dc70be504",
+    measurementId: "G-L6FBFFW8PM"
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
 
 export default function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isSetupComplete, setIsSetupComplete] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
+
+    useEffect(() => {
+        // 監聽 Firebase 登入狀態
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setIsLoggedIn(true);
+            } else {
+                setIsLoggedIn(false);
+            }
+            setIsInitializing(false);
+        });
+
+        // 取消監聽
+        return () => unsubscribe();
+    }, []);
+
+    if (isInitializing) {
+        return null; // 可以放個 Loading 畫面，這裡先留白
+    }
 
     return (
         <>

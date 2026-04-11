@@ -30,12 +30,6 @@
     "plugins": [
       "expo-router",
       [
-        "@react-native-firebase/app",
-        {
-          "androidServicesFile": "./google-services.json"
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
