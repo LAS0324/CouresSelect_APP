@@ -31,10 +31,6 @@ const setingOptions = [
         icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDdDMTIgNS45MzkxMyAxMS41Nzg2IDQuOTIxNzIgMTAuODI4NCA0LjE3MTU3QzEwLjA3ODMgMy40MjE0MyA5LjA2MDg3IDMgOCAzSDJWMThIOUM5Ljc5NTY1IDE4IDEwLjU1ODcgMTguMzE2MSAxMS4xMjEzIDE4Ljg3ODdDMTEuNjgzOSAxOS40NDEzIDEyIDIwLjIwNDQgMTIgMjFNMTIgN1YyMU0xMiA3QzEyIDUuOTM5MTMgMTIuNDIxNCA0LjkyMTcyIDEzLjE3MTYgNC4xNzE1N0MxMy45MjE3IDMuNDIxNDMgMTQuOTM5MSAzIDE2IDNIMjJWMThIMTVDMTQuMjA0NCAxOCAxMy40NDEzIDE4LjMxNjEgMTIuODc4NyAxOC44Nzg3QzEyLjMxNjEgMTkuNDQxMyAxMiAyMC4yMDQ0IDEyIDIxIiBzdHJva2U9IiNGRkZFRkEiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+"
     },
     {
-        title: "學校設置",
-        icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDE3VjEwLjFMMTIgMTVMMSA5TDEyIDNMMjMgOVYxN0gyMVpNMTIgMjFMNSAxNy4yVjEyLjJMMTIgMTZMMTkgMTIuMlYxNy4yTDEyIDIxWiIgZmlsbD0iI0ZGRkVGQSIvPgo8L3N2Zz4="
-    },
-    {
         title: "關於應用程式",
         icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzExN18xNDEwKSI+CjxwYXRoIGQ9Ik0xMiAxNlYxMk0xMiA4SDEyLjAxTTIyIDEyQzIyIDE3LjUyMjggMTcuNTIyOCAyMiAxMiAyMkM2LjQ3NzE1IDIyIDIgMTcuNTIyOCAyIDEyQzIgNi40NzcxNSA2LjQ3NzE1IDIgMTIgMkMxNy41MjI4IDIgMjIgNi40NzcxNSAyMiAxMloiIHN0cm9rZT0iI0ZGRkVGQSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzExN18xNDEwIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPg=="
     }
@@ -51,12 +47,12 @@ export default function PersonalSettings({ navigation }: any) {
     const [department, setDepartment] = useState('數位科技設計學系');
     const [className, setClassName] = useState('數位二甲');
     const [studentId, setStudentId] = useState('111319100');
+    const [school, setSchool] = useState('尚未設定學校');
 
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     // 取得當前使用者
     const currentUser = auth.currentUser;
-    const userEmail = currentUser?.email || "未登入 Email";
 
     // 監聽依賴 Firestore 的即時更新
     React.useEffect(() => {
@@ -70,6 +66,7 @@ export default function PersonalSettings({ navigation }: any) {
                 if (data.department) setDepartment(data.department);
                 if (data.className) setClassName(data.className);
                 if (data.studentId) setStudentId(data.studentId);
+                if (data.school) setSchool(data.school);
             }
         }, (error) => {
             console.error("監聽使用者資料失敗:", error);
@@ -132,9 +129,9 @@ export default function PersonalSettings({ navigation }: any) {
                     </View>
                 </TouchableOpacity>
 
-                {/* Email 顯示區塊 */}
+                {/* 學校顯示區塊 */}
                 <View style={styles.emailContainer}>
-                    <Text style={styles.emailText}>{userEmail}</Text>
+                    <Text style={styles.emailText}>{school}</Text>
                 </View>
 
                 {/* 班級、學號、學院標籤區塊 */}
@@ -220,6 +217,7 @@ export default function PersonalSettings({ navigation }: any) {
                 
             
             </ScrollView>
+
         </SafeAreaView>
     );
 }
@@ -365,10 +363,11 @@ const styles = StyleSheet.create({
         marginLeft: 'auto', // 推到最右邊
         alignSelf: 'center', // 強制垂直置中
         transform: [{ scale: 0.9 }], // 將 0.8 改成 0.95 放大一點
-    },    forwardIcon: {
+    },
+    forwardIcon: {
         marginLeft: 'auto', // 把箭頭推到最右邊
         width: 24,
         height: 24,
         alignSelf: 'center',
-    },
+    }
 });

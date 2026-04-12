@@ -1,10 +1,11 @@
+import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCourse } from '../../context/CourseContext';
 import TopNavBar from '../../navigation/TopNavBar';
 
 export default function Credit({ navigation }: any) {
-    const { generalCreditsTotal, mustCreditsTotal } = useCourse();
+    const { generalCreditsTotal, mustCreditsTotal, majorCreditsTotal, flexibleCreditsTotal } = useCourse();
 
     const handlePress = (route: string) => {
         navigation.navigate(route);
@@ -12,15 +13,17 @@ export default function Credit({ navigation }: any) {
 
     // 其他學分暫時寫死
     const mustCredits = mustCreditsTotal || 0;
-    const arrayCredits = 46;
-    const flexibleCredits = 0;
+    const arrayCredits = majorCreditsTotal || 0;
+    const flexibleCredits = flexibleCreditsTotal || 0;
     const currentTotal = mustCredits + generalCreditsTotal + arrayCredits + flexibleCredits;
     const TOTAL_REQUIRED = 128;
 
     // 計算半圓旋轉角度 (-45 度為 0%， 135 度為 100%)
     // 總共 180 度範圍 -> 比例 * 180 - 45
     const progressRatio = Math.min(currentTotal / TOTAL_REQUIRED, 1);
-    const rotationDegree = (progressRatio * 180) - 45;
+    const radius = 140;
+    const circumference = Math.PI * radius;
+    const strokeDashoffset = circumference - (progressRatio * circumference);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -30,11 +33,29 @@ export default function Credit({ navigation }: any) {
             <ScrollView contentContainerStyle={styles.container}>
                 {/* 頂部半圓進度與總學分 */}
                 <View style={styles.topSection}>
-                    <View style={styles.semiCircleWrapper}>
-                        {/* 灰色背景底 */}
-                        <View style={[styles.semiCircleBg, { borderColor: '#D3D3D3' }]} />
-                        {/* 綠色進度條覆蓋在上面 */}
-                        <View style={[styles.semiCircleFill, { borderColor: '#23A85B', transform: [{ rotate: `${rotationDegree}deg` }] }]} />
+                    <View style={styles.svgWrapper}>
+                        <Svg width="300" height="160" viewBox="0 0 300 160">
+                            {/* 灰色背景底 */}
+                            <Path 
+                                d="M 10 150 A 140 140 0 0 1 290 150" 
+                                fill="none" 
+                                stroke="#D3D3D3" 
+                                strokeWidth="20" 
+                                strokeLinecap="round" 
+                            />
+                            {/* 綠色進度條 （當 currentTotal 為 0 時，使用極小的 strokeDasharray 或完全不渲染避免圓點出現） */}
+                            {currentTotal > 0 && (
+                                <Path 
+                                    d="M 10 150 A 140 140 0 0 1 290 150" 
+                                    fill="none" 
+                                    stroke="#23A85B" 
+                                    strokeWidth="20" 
+                                    strokeLinecap="round"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={strokeDashoffset}
+                                />
+                            )}
+                        </Svg>
                     </View>
 
                     <View style={styles.centerContent}>
@@ -96,32 +117,15 @@ const styles = StyleSheet.create({
         position: 'relative',
         height: 200,
     },
-    semiCircleWrapper: {
+    svgWrapper: {
         width: 300,
-        height: 150, // 半圓高度是寬度一半
-        overflow: 'hidden',
+        height: 160,
         position: 'absolute',
         top: 0,
         alignItems: 'center',
     },
-    semiCircleBg: {
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        borderWidth: 20,
-        position: 'absolute',
-        top: 0,
-    },
-    semiCircleFill: {
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        borderWidth: 20,
-        borderBottomColor: 'transparent',
-        borderRightColor: 'transparent',
-        position: 'absolute',
-        top: 0,
-    },
+    
+    
     centerContent: {
         alignItems: 'center',
         marginTop: 40, // 調整文字區塊的位置

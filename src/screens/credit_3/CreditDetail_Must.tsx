@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Keyboard, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { useCourse } from '../../context/CourseContext';
 import { COLORS } from '../../styles/theme';
 
@@ -40,7 +40,7 @@ const CourseItem = memo(({ course, isSelected, toggleCourse }: { course: any; is
                     <Text style={styles.courseDomain}>{course.className}</Text>
                 )}
             </View>
-            <Text style={styles.courseCredits}>{course.credits}</Text>
+            <Text style={styles.courseCredits}>{course.credits} 學分</Text>
         </TouchableOpacity>
     );
 }, (prevProps, nextProps) => {
@@ -67,6 +67,11 @@ export default function CreditDetailMust({ navigation }: any) {
     // 初始化用 global state，若更改後尚未儲存就存在本地
     const [checkedCourses, setCheckedCourses] = useState<{ [key: string]: boolean }>(passedMustCourses || {});
 
+    // 當 global state (從 firebase 還原) 更新時，同步到本地
+    useEffect(() => {
+        setCheckedCourses(passedMustCourses || {});
+    }, [passedMustCourses]);
+
     // 同步計算：直接檢查是否與原本有差異
     const hasUnsavedChanges = JSON.stringify(checkedCourses) !== JSON.stringify(passedMustCourses || {});
 
@@ -78,9 +83,8 @@ export default function CreditDetailMust({ navigation }: any) {
         const fetchCourses = async () => {
             try {
                 // 從 Firebase 的 MustCourse 中獲取
-                const coursesRef = collection(db, 'Semesters', 'MustCourse', 'Courses');
-                const snapshot = await getDocs(coursesRef);
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const rawData = require('../../../courses/MustCourse.json');
+                const data = rawData.map((c: any) => ({ ...c, id: String(c.courseId) }));
                 
                 setCourses(data);
             } catch (error) {
@@ -149,8 +153,8 @@ export default function CreditDetailMust({ navigation }: any) {
     };
 
     const displayedCourses = courses.filter(course => {
-        // 1. 搜尋比對 (依照課名或老師)
-        const matchSearch = course.title?.includes(searchQuery) || (course.teacher && course.teacher.includes(searchQuery));
+        // 1. 搜尋比對 (依照課名)
+        const matchSearch = course.title?.includes(searchQuery);
         
         // 2. 分類比對 (檢查 className)
         let matchTab = true;
@@ -175,10 +179,11 @@ export default function CreditDetailMust({ navigation }: any) {
     });
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
-            
-            <View style={styles.header}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar barStyle="dark-content" />
+                
+                <View style={styles.header}>
                 <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color="#654321" />
                 </TouchableOpacity>
@@ -191,11 +196,16 @@ export default function CreditDetailMust({ navigation }: any) {
                     <Ionicons name="search" size={22} color="#888" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="搜尋課程名稱或是授課老師..."
+                        placeholder="搜尋課程名稱..."
                         placeholderTextColor="#999"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7} style={{ padding: 4 }}>
+                            <Ionicons name="close-circle" size={20} color="#B0B0B0" />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
@@ -237,6 +247,8 @@ export default function CreditDetailMust({ navigation }: any) {
                         maxToRenderPerBatch={20}
                         windowSize={5}
                         removeClippedSubviews={true}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="on-drag"
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingBottom: 80 }}
                         renderItem={({ item: course }) => (
@@ -268,6 +280,7 @@ export default function CreditDetailMust({ navigation }: any) {
                 </Animated.View>
             )}
         </SafeAreaView>
+        </TouchableWithoutFeedback>
     );
 }
 

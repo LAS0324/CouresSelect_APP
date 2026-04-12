@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Keyboard, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { useCourse } from '../../context/CourseContext';
 import { COLORS } from '../../styles/theme';
 
@@ -23,6 +23,13 @@ const db = getFirestore(app);
 // ---- 優化課程卡片渲染 ----
 // 使用 React.memo 包裝每一個 Course 的元件，這樣在勾選一個課程時，不會導致畫面中上百個其他沒變動的課程被重新渲染。
 const CourseItem = memo(({ course, isSelected, toggleCourse }: { course: any; isSelected: boolean; toggleCourse: (id: string) => void }) => {
+    // 假設是通識課程，只截取 "XX領域" 的部分，濾掉前面的 "全校大一通識課程" 等字眼
+    const formatDomain = (className: string) => {
+        if (!className) return '';
+        const match = className.match(/([^課程]+領域)$/);
+        return match ? match[1] : className;
+    };
+
     return (
         <TouchableOpacity 
             style={[styles.courseCard, isSelected && styles.courseCardSelected]} 
@@ -37,9 +44,9 @@ const CourseItem = memo(({ course, isSelected, toggleCourse }: { course: any; is
             />
             <View style={styles.courseInfo}>
                 <Text style={styles.courseTitle}>{course.title}</Text>
-                <Text style={styles.courseDomain}>{course.className}</Text>
+                <Text style={styles.courseDomain}>{formatDomain(course.className)}</Text>
             </View>
-            <Text style={styles.courseCredits}>{course.credits}</Text>
+            <Text style={styles.courseCredits}>{course.credits} 學分</Text>
         </TouchableOpacity>
     );
 }, (prevProps, nextProps) => {
@@ -77,6 +84,11 @@ export default function CreditDetailGeneral({ navigation }: any) {
     // 初始化用 global state，若更改後尚未儲存就存在本地
     const [checkedCourses, setCheckedCourses] = useState<{ [key: string]: boolean }>(passedGeneralCourses || {});
 
+    // 當 global state 更新時，同步到畫面
+    useEffect(() => {
+        setCheckedCourses(passedGeneralCourses || {});
+    }, [passedGeneralCourses]);
+
     // 同步計算：直接檢查是否與原本有差異，不再依賴 useEffect，消除按鈕出現的延遲感/閃爍
     const hasUnsavedChanges = JSON.stringify(checkedCourses) !== JSON.stringify(passedGeneralCourses || {});
 
@@ -88,9 +100,8 @@ export default function CreditDetailGeneral({ navigation }: any) {
         const fetchCourses = async () => {
             try {
                 // 從 Firebase 的 everyone_need_18 中獲取
-                const coursesRef = collection(db, 'Semesters', 'everyone_need_18', 'Courses');
-                const snapshot = await getDocs(coursesRef);
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const rawData = require('../../../courses/everyone_need_18.json');
+                const data = rawData.map((c: any) => ({ ...c, id: String(c.courseId) }));
                 
                 // 通識課程通常要有領域名稱，確保沒壞掉，同時統一 className 的命名
                 const filteredData = data.filter((c: any) => c.className && c.className.length > 0).map((c: any) => {
@@ -159,16 +170,14 @@ export default function CreditDetailGeneral({ navigation }: any) {
 
     // 篩選邏輯：搜尋字串 + 分類標籤
     const displayedCourses = courses.filter(course => {
-        // 1. 搜尋比對 (依照課名或老師)
-        const matchSearch = course.title?.includes(searchQuery) || (course.teacher && course.teacher.includes(searchQuery));
+        // 1. 搜尋比對 (依照課名)
+        const matchSearch = course.title?.includes(searchQuery);
         
         // 2. 分類比對 (檢查 className)
         let matchTab = true;
         const normalizedClassName = course.className ? course.className.replace(/、/g, '') : '';
 
         if (activeTab === '已選取') {
-            // 顯示目前有勾選的，或者是「原本就已經儲存為已選取」的課程
-            // 這樣在「已選取」頁面取消勾選時，它才不會馬上消失，直到按下儲存才會真正移除
             matchTab = !!checkedCourses[course.id] || !!passedGeneralCourses[course.id];
         } else if (activeTab === '其他') {
             matchTab = !DOMAINS.some(domain => normalizedClassName.includes(domain.replace(/、/g, '')));
@@ -194,6 +203,7 @@ export default function CreditDetailGeneral({ navigation }: any) {
     });
 
     return (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
             
@@ -210,11 +220,16 @@ export default function CreditDetailGeneral({ navigation }: any) {
                     <Ionicons name="search" size={22} color="#888" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="搜尋課程名稱或是授課老師..."
+                        placeholder="搜尋課程名稱..."
                         placeholderTextColor="#999"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7} style={{ padding: 4 }}>
+                            <Ionicons name="close-circle" size={20} color="#B0B0B0" />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
@@ -258,6 +273,8 @@ export default function CreditDetailGeneral({ navigation }: any) {
                         maxToRenderPerBatch={20}
                         windowSize={5}
                         removeClippedSubviews={true}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="on-drag"
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingBottom: 80 }}
                         renderItem={({ item: course }) => (
@@ -289,6 +306,7 @@ export default function CreditDetailGeneral({ navigation }: any) {
                 </Animated.View>
             )}
         </SafeAreaView>
+        </TouchableWithoutFeedback>
     );
 }
 

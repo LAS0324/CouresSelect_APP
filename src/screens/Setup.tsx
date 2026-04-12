@@ -2,7 +2,7 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { doc, getFirestore, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
 // 匯入從 JSON 抓取的資料
@@ -44,16 +44,50 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
     const schools = ['國立臺北教育大學', '國立臺灣大學', '國立師範大學', '國立政治大學'];
 
     const handleSelect = (item: string) => {
-        if (modalType === 'school') setSchool(item);
-        else if (modalType === 'department') setDepartment(item);
-        else if (modalType === 'class') setClassName(item);
+        if (modalType === 'school') {
+            setSchool(item);
+        } else if (modalType === 'department') {
+            setDepartment(item);
+            // 當前學系改變時，清空已經選好的班級
+            if (className && !className.includes(item.slice(0, 2))) {
+                setClassName('');
+            }
+        } else if (modalType === 'class') {
+            setClassName(item);
+        }
         setModalVisible(false);
     };
 
     const getModalData = () => {
         if (modalType === 'school') return schools;
         if (modalType === 'department') return departmentsData;
-        if (modalType === 'class') return classNamesData;
+        if (modalType === 'class') {
+            // 如果已經選擇學系，僅過濾出相應學系的班級
+            if (department) {
+                // 為了處理 "資訊科學系" 對應到 "資科"、"自然科學教育學系" 對應到 "自" 等縮寫，抓取前幾個字進行模糊匹配
+                const shortDept = department === '資訊科學系' ? '資科' 
+                                : department === '自然科學教育學系' ? '自'
+                                : department === '藝術與造形設計學系' ? '藝'
+                                : department === '數位科技設計學系' ? '數位'
+                                : department === '數學暨資訊教育學系' ? '數資'
+                                : department === '幼兒與家庭教育學系' ? '幼教'
+                                : department === '社會與區域發展學系' ? '社'
+                                : department === '教育經營與管理學系' ? '教經'
+                                : department === '心理與諮商學系' ? '心諮'
+                                : department === '兒童英語教育學系' ? '兒英'
+                                : department === '語文與創作學系' ? '語'
+                                : department === '文化創意產業經營學系' ? '文'
+                                : department === '音樂學系' ? '音'
+                                : department === '體育學系' ? '體'
+                                : department === '教育學系' ? '教育'
+                                : department === '特殊教育學系' ? '特'
+                                : department.slice(0, 2); // 預設方案
+                
+                return classNamesData.filter((cls: string) => cls.startsWith(shortDept));
+            }
+            // 沒選學系的情況，回傳所有班級
+            return classNamesData;
+        }
         return [];
     };
 
@@ -92,6 +126,7 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
     };
 
     return (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView 
                 style={styles.keyBoardContainer} 
@@ -106,6 +141,7 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
                             <TouchableOpacity
                                 style={styles.dropdownTrigger}
                                 onPress={() => {
+                                    Keyboard.dismiss();
                                     setModalType('school');
                                     setModalVisible(true);
                                 }}
@@ -150,6 +186,7 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
                                 <TouchableOpacity 
                                     style={[styles.dropdownTrigger, styles.halfDropdown]} 
                                     onPress={() => {
+                                        Keyboard.dismiss();
                                         setModalType('department');
                                         setModalVisible(true);
                                     }}
@@ -163,6 +200,7 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
                                 <TouchableOpacity 
                                     style={[styles.dropdownTrigger, styles.halfDropdown]} 
                                     onPress={() => {
+                                        Keyboard.dismiss();
                                         setModalType('class');
                                         setModalVisible(true);
                                     }}
@@ -240,6 +278,7 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
                 </TouchableOpacity>
             </Modal>
         </SafeAreaView>
+        </TouchableWithoutFeedback>
     );
 };
 

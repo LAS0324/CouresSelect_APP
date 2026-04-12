@@ -18,7 +18,7 @@ interface TopNavBarProps {
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ 
     title = '選課', 
-    showMenu = true, 
+    showMenu = false, 
     showInfo = true, 
     showRightMenu = false,
     showBack = false,

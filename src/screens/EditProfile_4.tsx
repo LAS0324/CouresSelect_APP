@@ -4,6 +4,7 @@ import { getAuth } from 'firebase/auth';
 import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import classNamesData from '../../courses/classNames.json';
 import departmentsData from '../../courses/departments.json';
 import TopNavBar from '../navigation/TopNavBar';
 import { COLORS } from '../styles/theme';
@@ -27,8 +28,37 @@ export default function EditProfile({ navigation }: any) {
     const [department, setDepartment] = useState('');
     const [className, setClassName] = useState('');
     const [studentId, setStudentId] = useState('');
+    const [school, setSchool] = useState('國立臺北教育大學');
+    const [isSchoolModalVisible, setIsSchoolModalVisible] = useState(false);
+    const schools = ['國立臺北教育大學', '國立臺灣大學', '國立師範大學', '國立政治大學'];
     const [isSaving, setIsSaving] = useState(false);
     const [isDeptModalVisible, setIsDeptModalVisible] = useState(false);
+    const [isClassModalVisible, setIsClassModalVisible] = useState(false);
+
+    const getAvailableClasses = () => {
+        if (department) {
+            const shortDept = department === '資訊科學系' ? '資科' 
+                            : department === '自然科學教育學系' ? '自'
+                            : department === '藝術與造形設計學系' ? '藝'
+                            : department === '數位科技設計學系' ? '數位'
+                            : department === '數學暨資訊教育學系' ? '數資'
+                            : department === '幼兒與家庭教育學系' ? '幼教'
+                            : department === '社會與區域發展學系' ? '社'
+                            : department === '教育經營與管理學系' ? '教經'
+                            : department === '心理與諮商學系' ? '心諮'
+                            : department === '兒童英語教育學系' ? '兒英'
+                            : department === '語文與創作學系' ? '語'
+                            : department === '體育學系' ? '體'
+                            : department === '文化創意產業經營學系' ? '文創'
+                            : department === '教育學系' ? '教'
+                            : department === '音樂學系' ? '音'
+                            : department === '特殊教育學系' ? '特'
+                            : department.slice(0, 2); // 預設方案
+            
+            return classNamesData.filter((cls: string) => cls.startsWith(shortDept));
+        }
+        return classNamesData;
+    };
 
     const currentUser = auth.currentUser;
 
@@ -43,6 +73,7 @@ export default function EditProfile({ navigation }: any) {
                     if (data.department) setDepartment(data.department);
                     if (data.className) setClassName(data.className);
                     if (data.studentId) setStudentId(data.studentId);
+                    if (data.school) setSchool(data.school);
                 }
             } catch (error) {
                 console.error("獲取使用者資料失敗:", error);
@@ -64,7 +95,8 @@ export default function EditProfile({ navigation }: any) {
                     name,
                     department,
                     className,
-                    studentId
+                    studentId,
+                    school
                 }, { merge: true });
             }
             
@@ -123,6 +155,27 @@ export default function EditProfile({ navigation }: any) {
                         <View style={styles.divider} />
 
                         <View style={styles.settingRow}>
+                            <Text style={styles.settingLabel}>學校</Text>
+                            <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                                <TouchableOpacity 
+                                    style={styles.departmentTag}
+                                    onPress={() => setIsSchoolModalVisible(true)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={{ 
+                                        color: COLORS.editProfileTagText,
+                                        fontSize: 14, 
+                                        fontWeight: '600',
+                                        textAlign: 'center'
+                                    }}>
+                                        {school || "+ 選擇學校"}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                        <View style={styles.divider} />
+
+                        <View style={styles.settingRow}>
                             <Text style={styles.settingLabel}>學系</Text>
                             <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
                                 <TouchableOpacity 
@@ -145,14 +198,22 @@ export default function EditProfile({ navigation }: any) {
 
                         <View style={styles.settingRow}>
                             <Text style={styles.settingLabel}>班級</Text>
-                            <TextInput
-                                style={styles.settingInput}
-                                value={className}
-                                onChangeText={setClassName}
-                                placeholder="請輸入班級"
-                                placeholderTextColor="#999"
-                                selectionColor={COLORS.primary}
-                            />
+                                <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                                    <TouchableOpacity 
+                                        style={styles.departmentTag}
+                                        onPress={() => setIsClassModalVisible(true)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={{ 
+                                            color: COLORS.editProfileTagText,
+                                            fontSize: 14, 
+                                            fontWeight: '600',
+                                            textAlign: 'center'
+                                        }}>
+                                            {className || "+ 選擇班級"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                         </View>
                         <View style={styles.divider} />
 
@@ -182,6 +243,53 @@ export default function EditProfile({ navigation }: any) {
                 </ScrollView>
             </KeyboardAvoidingView>
 
+            {/* 學校選擇下拉 Modal */}
+            <Modal
+                visible={isSchoolModalVisible}
+                transparent={true}
+                animationType="none"
+                onRequestClose={() => setIsSchoolModalVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setIsSchoolModalVisible(false)}
+                >
+                    <TouchableWithoutFeedback>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>選擇學校</Text>
+                        </View>
+                        <FlatList
+                            data={schools}
+                            contentContainerStyle={styles.modalListContainer}
+                            showsVerticalScrollIndicator={false}
+                            keyExtractor={(item) => item}
+                            renderItem={({ item }) => {
+                                const isSelected = school === item;
+                                return (
+                                        <TouchableOpacity 
+                                            style={[styles.modalItem, isSelected && styles.modalItemSelected]}
+                                            onPress={() => {
+                                                setIsSchoolModalVisible(false);
+                                                setTimeout(() => {
+                                                    setSchool(item);
+                                                }, 250);
+                                            }}
+                                            activeOpacity={0.7}
+                                        >
+                                        <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
+                                            {item}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+                    </View>
+                    </TouchableWithoutFeedback>
+                </TouchableOpacity>
+            </Modal>
+
             {/* 學系選擇下拉 Modal */}
             <Modal
                 visible={isDeptModalVisible}
@@ -207,16 +315,17 @@ export default function EditProfile({ navigation }: any) {
                             renderItem={({ item }) => {
                                 const isSelected = department === item;
                                 return (
-                                    <TouchableOpacity 
-                                        style={[styles.modalItem, isSelected && styles.modalItemSelected]}
-                                        onPress={() => {
-                                            setIsDeptModalVisible(false);
-                                            setTimeout(() => {
-                                                setDepartment(item);
-                                            }, 250);
-                                        }}
-                                        activeOpacity={0.7}
-                                    >
+                                        <TouchableOpacity 
+                                            style={[styles.modalItem, isSelected && styles.modalItemSelected]}
+                                            onPress={() => {
+                                                setIsDeptModalVisible(false);
+                                                setTimeout(() => {
+                                                    setDepartment(item);
+                                                    setClassName('');
+                                                }, 250);
+                                            }}
+                                            activeOpacity={0.7}
+                                        >
                                         <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
                                             {item}
                                         </Text>
@@ -225,6 +334,53 @@ export default function EditProfile({ navigation }: any) {
                             }}
                         />
                     </View>
+                    </TouchableWithoutFeedback>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* 學系班級選擇彈窗 */}
+            <Modal
+                visible={isClassModalVisible}
+                transparent={true}
+                animationType="none"
+                onRequestClose={() => setIsClassModalVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setIsClassModalVisible(false)}
+                >
+                    <TouchableWithoutFeedback>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>選擇班級</Text>
+                            </View>
+                            <FlatList
+                                data={getAvailableClasses()}
+                                contentContainerStyle={styles.modalListContainer}
+                                showsVerticalScrollIndicator={false}
+                                keyExtractor={(item) => item}
+                                renderItem={({ item }) => {
+                                    const isSelected = className === item;
+                                    return (
+                                        <TouchableOpacity 
+                                            style={[styles.modalItem, isSelected && styles.modalItemSelected]}
+                                            onPress={() => {
+                                                setIsClassModalVisible(false);
+                                                setTimeout(() => {
+                                                    setClassName(item);
+                                                }, 250);
+                                            }}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
+                                                {item}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                }}
+                            />
+                        </View>
                     </TouchableWithoutFeedback>
                 </TouchableOpacity>
             </Modal>

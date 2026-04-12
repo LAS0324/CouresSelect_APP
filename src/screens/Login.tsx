@@ -1,7 +1,7 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
 // 初始化 Firebase Config (Web SDK - 支援 Expo Go 的版本)
@@ -28,6 +28,7 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoginMode, setIsLoginMode] = useState(true);
 
     // 處理登入
     const handleLogin = async () => {
@@ -77,11 +78,12 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={styles.contentContainer}
-            >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <SafeAreaView style={styles.container}>
+                <KeyboardAvoidingView 
+                  behavior={Platform.OS === "ios" ? "padding" : "height"}
+                  style={styles.contentContainer}
+                >
                 {/* 插圖區域 */}
                 <View style={styles.imageWrapper}>
                     <View style={styles.imagePlaceholder}>
@@ -94,8 +96,8 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
 
                 {/* 標題與標語 */}
                 <View style={styles.textSection}>
-                    <Text style={styles.title}>歡迎使用選課助手</Text>
-                    <Text style={styles.subtitle}>開展您的學術禪意之旅</Text>
+                    <Text style={styles.title}>{isLoginMode ? "歡迎使用選課助手" : "建立新帳號"}</Text>
+                    <Text style={styles.subtitle}>{isLoginMode ? "開展您的學術禪意之旅" : "加入我們，開始您的學習旅程"}</Text>
                 </View>
 
                 {/* 使用者輸入區域 */}
@@ -119,27 +121,27 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
                     />
                 </View>
 
-                {/* Email 登入按鈕 */}
+                {/* 登入 / 註冊 主要按鈕 */}
                 <TouchableOpacity
                     style={styles.loginButton}
-                    onPress={handleLogin}
+                    onPress={isLoginMode ? handleLogin : handleRegister}
                     activeOpacity={0.8}
                     disabled={isLoading}
                 >
                     <Text style={styles.loginButtonText}>
-                        {isLoading ? "處理中..." : "登入"}
+                        {isLoading ? "處理中..." : (isLoginMode ? "登入" : "註冊")}
                     </Text>
                 </TouchableOpacity>
 
-                {/* 註冊按鈕 */}
+                {/* 切換模式文字 */}
                 <TouchableOpacity
-                    style={[styles.loginButton, styles.registerButton]}
-                    onPress={handleRegister}
+                    style={{ marginTop: 10, paddingVertical: 10, alignItems: 'center' }}
+                    onPress={() => setIsLoginMode(!isLoginMode)}
                     activeOpacity={0.8}
                     disabled={isLoading}
                 >
-                    <Text style={[styles.loginButtonText, styles.registerButtonText]}>
-                        還沒有帳號嗎？點此註冊
+                    <Text style={{ color: COLORS.primary || "#4A90E2", fontSize: 16, fontWeight: '600' }}>
+                        {isLoginMode ? "還沒註冊嗎？前往註冊" : "已有帳號？返回登入"}
                     </Text>
                 </TouchableOpacity>
 
@@ -150,6 +152,7 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
                 <Text style={styles.footerText}>THE ACADEMIC SANCTUARY • VERSION 2.0</Text>
             </View>
         </SafeAreaView>
+        </TouchableWithoutFeedback>
     );
 };
 
@@ -237,14 +240,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#FFF",
         fontWeight: "bold",
-    },
-    registerButton: {
-        backgroundColor: "transparent",
-        borderWidth: 2,
-        borderColor: COLORS.primary || "#4A90E2",
-    },
-    registerButtonText: {
-        color: COLORS.primary || "#4A90E2",
     },
     footer: {
         alignItems: "center",
