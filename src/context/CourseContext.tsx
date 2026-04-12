@@ -42,9 +42,14 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // --- 功能實作 ---
     const addCourse = (course: Course) => {
-        if (!selectedCourses.find(c => c.id === course.id)) {
-            setSelectedCourses([...selectedCourses, course]);
-        }
+        setSelectedCourses(prev => {
+            // 檢查是否重複（以 ID 為準）
+            if (prev.find(c => c.id === course.id)) {
+                return prev;
+            }
+            // 使用 prev 確保抓到的是當前最新籃子裡的課程
+            return [...prev, course];
+        });
     };
 
     // 💡 實作刪除邏輯

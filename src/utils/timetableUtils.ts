@@ -1,33 +1,46 @@
-// 排序規則：1. 開始時間早的在前 2. 節數少（課短）的在前
-export const sortOverlappingCourses = (courses: any[]) => {
-    return [...courses].sort((a, b) => {
-        // 假設 slot 格式為 "1-01"
-        const startA = parseInt(a.timeSlots[0].split('-')[1]);
-        const startB = parseInt(b.timeSlots[0].split('-')[1]);
+const PERIOD_ORDER = ['0M', '01', '02', '03', '04', '0N', '05', '06', '07', '08', '0E', '09', '10', '11', '12'];
 
-        if (startA !== startB) return startA - startB;
-        return a.timeSlots.length - b.timeSlots.length;
-    });
+const getPeriodIdx = (pId: string) => {
+    const idx = PERIOD_ORDER.indexOf(pId);
+    return idx === -1 ? 0 : idx;
 };
 
-// 將選課清單轉換成二維陣列 [星期Idx][節次Idx]
-export const getGridData = (selectedCourses: any[], periods: any[]) => {
-    // 💡 在宣告時加上類型的定義：any[][][] 代表這是「陣列中的陣列中的陣列」
-    const grid: any[][][] = Array.from({ length: 5 }, () =>
-        Array.from({ length: periods.length }, () => [])
-    );
+export const calculateCourseLayout = (course: any, allCourses: any[], cellHeight: number) => {
+    const periodIndices = course.timeSlots.map((s: string) => getPeriodIdx(s.split('-')[1]));
+    const day = parseInt(course.timeSlots[0].split('-')[0]);
 
-    selectedCourses.forEach(course => {
-        course.timeSlots.forEach((slot: string) => {
-            const [dayStr, pId] = slot.split('-');
-            const dIdx = parseInt(dayStr) - 1;
-            const pIdx = periods.findIndex(p => p.id === pId);
+    const startIdx = Math.min(...periodIndices);
+    const endIdx = Math.max(...periodIndices) + 1;
 
-            if (dIdx >= 0 && dIdx < 5 && pIdx !== -1) {
-                // 現在這裡就不會報錯了，因為 grid 知道裡面可以放東西
-                grid[dIdx][pIdx].push(course);
-            }
-        });
+    // 💡 1. 找出該天所有課
+    const dailyCourses = allCourses.filter(c => parseInt(c.timeSlots[0].split('-')[0]) === day);
+
+    // 💡 2. 核心重疊邏輯：找出這堂課在「同一個時間群組」中的所有課
+    // 只要有任何一節課重疊，就視為同一組
+    const overlaps = dailyCourses.filter(other => {
+        const otherIndices = other.timeSlots.map((s: string) => getPeriodIdx(s.split('-')[1]));
+        const otherStart = Math.min(...otherIndices);
+        const otherEnd = Math.max(...otherIndices) + 1;
+        return (startIdx < otherEnd && endIdx > otherStart);
     });
-    return grid;
+
+    // 💡 3. 排序規則：依照開始時間與長度排序，確保渲染順序一致
+    const sortedOverlaps = [...overlaps].sort((a, b) => {
+        const aStart = Math.min(...a.timeSlots.map((s: any) => getPeriodIdx(s.split('-')[1])));
+        const bStart = Math.min(...b.timeSlots.map((s: any) => getPeriodIdx(s.split('-')[1])));
+        if (aStart !== bStart) return aStart - bStart;
+        return a.timeSlots.length - b.timeSlots.length;
+    });
+
+    const myIndex = sortedOverlaps.findIndex(c => c.id === course.id);
+    const totalColumns = sortedOverlaps.length;
+
+    return {
+        day: day - 1,
+        top: startIdx * cellHeight,
+        height: (endIdx - startIdx) * cellHeight,
+        // 寬度百分比：假設一週五天，每天佔 20%，這裡算的是在當天 20% 裡的占比
+        widthPercent: 100 / totalColumns,
+        leftOffsetPercent: (100 / totalColumns) * myIndex
+    };
 };
