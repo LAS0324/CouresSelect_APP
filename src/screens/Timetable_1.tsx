@@ -1,42 +1,37 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet,
-    Text, TouchableOpacity, View, Alert
+    SafeAreaView, ScrollView, StyleSheet,
+    Text, TouchableOpacity, View, TouchableWithoutFeedback
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { PinchGestureHandler, State, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useCourse } from '../context/CourseContext';
 import TopNavBar from '../navigation/TopNavBar';
-import { getGridData, sortOverlappingCourses } from '../utils/timetableUtils';
+import { calculateCourseLayout } from '../utils/timetableUtils';
 
 const SEMESTER_START_DATE = new Date('2026-02-23');
 
 const TimetableScreen = () => {
-    // --- 狀態管理 ---
     const [viewMode, setViewMode] = useState<'Week' | 'Day'>('Week');
-    const [selectedDay, setSelectedDay] = useState(0); // 專供 Day 模式使用
     const [currentWeek, setCurrentWeek] = useState(1);
     const [isDeleteMode, setIsDeleteMode] = useState(false);
-    const [zoomLevel, setZoomLevel] = useState(1.0);
+    const [cellHeight, setCellHeight] = useState(60);
+    const [tempHeight, setTempHeight] = useState(60);
 
     const { selectedCourses, removeCourse } = useCourse();
 
-    const days = [
-        { label: '一', en: 'Mon' }, { label: '二', en: 'Tue' },
-        { label: '三', en: 'Wed' }, { label: '四', en: 'Thu' }, { label: '五', en: 'Fri' },
-    ];
+    const days = [{ label: '一' }, { label: '二' }, { label: '三' }, { label: '四' }, { label: '五' }];
 
     const periods = [
-        { id: '0M', time: '07:10\n08:00' }, { id: '01', time: '08:10\n09:00' },
-        { id: '02', time: '09:10\n10:00' }, { id: '03', time: '10:10\n11:00' },
-        { id: '04', time: '11:10\n12:00' }, { id: '0N', time: '12:10\n13:20' },
-        { id: '05', time: '13:30\n14:20' }, { id: '06', time: '14:30\n15:20' },
-        { id: '07', time: '15:30\n16:20' }, { id: '08', time: '16:30\n17:20' },
-        { id: '0E', time: '17:30\n18:20' }, { id: '09', time: '18:30\n19:15' },
-        { id: '10', time: '19:15\n20:00' }, { id: '11', time: '20:10\n20:55' },
-        { id: '12', time: '20:55\n21:40' },
+        { id: '0M', start: '07:10', end: '08:00' }, { id: '01', start: '08:10', end: '09:00' },
+        { id: '02', start: '09:10', end: '10:00' }, { id: '03', start: '10:10', end: '11:00' },
+        { id: '04', start: '11:10', end: '12:00' }, { id: '0N', start: '12:10', end: '13:20' },
+        { id: '05', start: '13:30', end: '14:20' }, { id: '06', start: '14:30', end: '15:20' },
+        { id: '07', start: '15:30', end: '16:20' }, { id: '08', start: '16:30', end: '17:20' },
+        { id: '0E', start: '17:30', end: '18:20' }, { id: '09', start: '18:30', end: '19:15' },
+        { id: '10', start: '19:15', end: '20:00' }, { id: '11', start: '20:10', end: '20:55' },
+        { id: '12', start: '20:55', end: '21:40' },
     ];
 
-    // 動態計算週數
     useEffect(() => {
         const today = new Date();
         const diffInMs = today.getTime() - SEMESTER_START_DATE.getTime();
@@ -44,198 +39,182 @@ const TimetableScreen = () => {
         setCurrentWeek(week >= 1 && week <= 18 ? week : (week > 18 ? 18 : 1));
     }, []);
 
-    // 💡 核心資料：Week 模式用的二維網格
-    const gridData = useMemo(() => getGridData(selectedCourses, periods), [selectedCourses]);
-
-    // 💡 核心資料：Day 模式用的當天過濾
-    const getCoursesBySlot = (dayIdx: number, periodId: string) => {
-        const slotKey = `${dayIdx + 1}-${periodId}`;
-        return selectedCourses.filter(course => course.timeSlots.includes(slotKey));
+    const onPinchGestureEvent = (event: any) => {
+        if (event.nativeEvent.state === State.ACTIVE) {
+            let newHeight = cellHeight * event.nativeEvent.scale;
+            newHeight = Math.min(Math.max(newHeight, 45), 180);
+            setTempHeight(newHeight);
+        }
     };
 
-    // --- Week 模式專用子組件 ---
-    const TimetableCell = ({ dayIdx, pIdx }: { dayIdx: number, pIdx: number }) => {
-        const cellCourses = gridData[dayIdx][pIdx];
-        const sorted = sortOverlappingCourses(cellCourses);
-
-        return (
-            <View style={styles.gridCell}>
-                <View style={styles.pillContainer}>
-                    {sorted.map((course, idx) => (
-                        <TouchableOpacity
-                            key={`${course.id}-${idx}`}
-                            onLongPress={() => setIsDeleteMode(true)}
-                            style={[styles.coursePill, { flex: 1, backgroundColor: '#FFF' }]}
-                        >
-                            {zoomLevel > 1.3 && <Text style={styles.pillText} numberOfLines={1}>{course.name}</Text>}
-                            {isDeleteMode && (
-                                <TouchableOpacity style={styles.deleteBadge} onPress={() => removeCourse(course.id)}>
-                                    <Text style={{ color: '#FFF', fontSize: 10 }}>×</Text>
-                                </TouchableOpacity>
-                            )}
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-        );
+    const onPinchHandlerStateChange = (event: any) => {
+        if (event.nativeEvent.state === State.END) {
+            setCellHeight(tempHeight);
+        }
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <TopNavBar title="課表" />
-            <View style={styles.container}>
-
-                {/* 1️⃣ Switch Button 切換器 */}
-                <View style={styles.header}>
-                    <Text style={styles.subTitle}>114下學期 第{currentWeek}週</Text>
-                    <View style={styles.customSwitch}>
-                        <TouchableOpacity
-                            style={[styles.switchOption, viewMode === 'Week' && styles.switchActive]}
-                            onPress={() => { setViewMode('Week'); setIsDeleteMode(false); }}
-                        >
-                            <Text style={[styles.switchText, viewMode === 'Week' && styles.switchTextActive]}>WEEK</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.switchOption, viewMode === 'Day' && styles.switchActive]}
-                            onPress={() => { setViewMode('Day'); setIsDeleteMode(false); }}
-                        >
-                            <Text style={[styles.switchText, viewMode === 'Day' && styles.switchTextActive]}>DAY</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {viewMode === 'Week' ? (
-                    /* 2️⃣ WEEK 模式佈局 */
-                    <View style={styles.weekWrapper}>
-                        <View style={styles.weekHeader}>
-                            <View style={{ width: 40 }} />
-                            {days.map((d, i) => (
-                                <View key={i} style={styles.weekDayLabel}>
-                                    <Text style={styles.weekHeaderText}>{d.label}</Text>
-                                </View>
-                            ))}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaView style={styles.safeArea}>
+                <TopNavBar title="課表" />
+                <View style={styles.container}>
+                    <View style={styles.header}>
+                        <Text style={styles.subTitle}>114下 第{currentWeek}週</Text>
+                        <View style={styles.customSwitch}>
+                            <TouchableOpacity style={[styles.switchOption, viewMode === 'Week' && styles.switchActive]} onPress={() => setViewMode('Week')}>
+                                <Text style={[styles.switchText, viewMode === 'Week' && styles.switchTextActive]}>WEEK</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.switchOption, viewMode === 'Day' && styles.switchActive]} onPress={() => setViewMode('Day')}>
+                                <Text style={[styles.switchText, viewMode === 'Day' && styles.switchTextActive]}>DAY</Text>
+                            </TouchableOpacity>
                         </View>
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <View style={styles.gridBody}>
-                                <View style={styles.timeColumn}>
-                                    {periods.map(p => (
-                                        <View key={p.id} style={styles.timeCell}>
-                                            <Text style={styles.timeCellId}>{p.id}</Text>
-                                            <Text style={styles.timeCellTime}>{p.time.split('\n')[0]}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                                <View style={styles.gridContainer}>
-                                    {periods.map((_, pIdx) => (
-                                        <View key={pIdx} style={styles.gridRow}>
-                                            {days.map((_, dIdx) => (
-                                                <TimetableCell key={dIdx} dayIdx={dIdx} pIdx={pIdx} />
-                                            ))}
-                                        </View>
-                                    ))}
-                                </View>
+                    </View>
+
+                    {viewMode === 'Week' && (
+                        <View style={styles.weekWrapper}>
+                            <View style={styles.weekDayHeader}>
+                                <View style={{ width: 45 }} />
+                                {days.map((d, i) => (
+                                    <View key={i} style={styles.dayLabelCell}><Text style={styles.dayLabelText}>{d.label}</Text></View>
+                                ))}
                             </View>
-                        </ScrollView>
-                        <TouchableOpacity style={styles.zoomToggle} onPress={() => setZoomLevel(zoomLevel === 1.0 ? 1.5 : 1.0)}>
-                            <Text>{zoomLevel === 1.0 ? "🔍 放大顯示文字" : "🤏 縮小看全圖"}</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    /* 3️⃣ DAY 模式佈局 (恢復你原本的設計) */
-                    <View style={{ flex: 1 }}>
-                        <View style={styles.daySelector}>
-                            {days.map((day, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[styles.dayButton, selectedDay === index && styles.dayButtonActive]}
-                                    onPress={() => setSelectedDay(index)}
-                                >
-                                    <Text style={[styles.dayEn, selectedDay === index && styles.textActive]}>{day.en}</Text>
-                                    <Text style={[styles.dayCn, selectedDay === index && styles.textActive]}>{day.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                        <View style={styles.tableCard}>
+
                             <ScrollView showsVerticalScrollIndicator={false}>
-                                {periods.map((p) => {
-                                    const dayCourses = getCoursesBySlot(selectedDay, p.id);
-                                    return (
-                                        <View key={p.id} style={styles.periodRow}>
-                                            <View style={styles.timeLabelContainer}>
-                                                <Text style={styles.periodLabel}>{p.id}</Text>
-                                                <Text style={styles.timeRangeText}>{p.time}</Text>
+                                <View style={styles.timetableBody}>
+                                    <View style={styles.timeSidebar}>
+                                        {periods.map(p => (
+                                            <View key={p.id} style={[styles.timeSideCell, { height: tempHeight }]}>
+                                                <Text style={styles.timeSideId}>{p.id}</Text>
+                                                {tempHeight > 75 && <Text style={styles.timeSideTime}>{`${p.start}\n${p.end}`}</Text>}
                                             </View>
-                                            <View style={styles.courseCellContainer}>
-                                                {dayCourses.map((c, i) => (
-                                                    <View key={i} style={[styles.courseEntry, dayCourses.length > 1 && styles.clashHighlight]}>
-                                                        <Text style={styles.courseNameText}>{c.name}</Text>
-                                                        <Text style={styles.courseDetailText}>{c.location}</Text>
-                                                        <Text style={styles.courseDetailText}>{c.teacher}</Text>
-                                                    </View>
-                                                ))}
-                                            </View>
+                                        ))}
+                                    </View>
+
+                                    <PinchGestureHandler onGestureEvent={onPinchGestureEvent} onHandlerStateChange={onPinchHandlerStateChange}>
+                                        <View style={[styles.canvas, { height: periods.length * tempHeight }]}>
+                                            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setIsDeleteMode(false)} />
+
+                                            {periods.map((_, i) => <View key={i} style={[styles.gridLineH, { top: i * tempHeight }]} />)}
+                                            {[0, 1, 2, 3, 4].map(i => <View key={i} style={[styles.gridLineV, { left: `${i * 20}%` }]} />)}
+
+                                            {selectedCourses.map((course) => {
+                                                const layout = calculateCourseLayout(course, selectedCourses, tempHeight);
+                                                const isClashed = layout.widthPercent < 100;
+                                                const fontSize = tempHeight < 65 ? 8 : 10;
+
+                                                const courseNameArray = Array.from(course.name);
+                                                const displayArray = isClashed ? courseNameArray.slice(0, 5) : [course.name];
+
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={course.id}
+                                                        activeOpacity={0.8}
+                                                        onLongPress={() => setIsDeleteMode(true)}
+                                                        style={[
+                                                            styles.courseItem,
+                                                            {
+                                                                top: layout.top,
+                                                                height: layout.height - 2,
+                                                                width: `${layout.widthPercent / 5}%`,
+                                                                left: `${(layout.day * 20) + (layout.leftOffsetPercent / 5)}%`,
+                                                                // 💡 無論是否衝堂，皆垂直置中與水平置中
+                                                                justifyContent: 'center',
+                                                            }
+                                                        ]}
+                                                    >
+                                                        <View style={styles.courseTextContainer}>
+                                                            {isClashed ? (
+                                                                <>
+                                                                    {displayArray.map((char, index) => (
+                                                                        <Text key={index} style={[styles.unifiedText, { fontSize }]}>{char}</Text>
+                                                                    ))}
+                                                                    {courseNameArray.length > 5 && (
+                                                                        <Text style={[styles.unifiedText, { fontSize, marginTop: -2 }]}>...</Text>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Text style={[styles.unifiedText, { fontSize }]} numberOfLines={2}>{course.name}</Text>
+                                                                    <Text style={[styles.unifiedText, { fontSize }]} numberOfLines={1}>{course.location}</Text>
+                                                                    <Text style={[styles.unifiedText, { fontSize }]} numberOfLines={1}>{course.teacher}</Text>
+                                                                </>
+                                                            )}
+                                                        </View>
+
+                                                        {isDeleteMode && (
+                                                            <TouchableOpacity style={styles.deleteBadge} onPress={() => removeCourse(course.id)}>
+                                                                <Text style={{ color: '#FFF', fontSize: 10, fontWeight: 'bold' }}>×</Text>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </View>
-                                    );
-                                })}
+                                    </PinchGestureHandler>
+                                </View>
                             </ScrollView>
                         </View>
-                    </View>
-                )}
-            </View>
-        </SafeAreaView>
+                    )}
+                </View>
+            </SafeAreaView>
+        </GestureHandlerRootView>
     );
 };
 
-// ... 你的樣式表 ...
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FAF7ED' },
     container: { flex: 1, paddingHorizontal: 15 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 15 },
     subTitle: { fontSize: 20, fontWeight: 'bold', color: '#6D5D4B' },
-
-    // Switch Button
     customSwitch: { flexDirection: 'row', backgroundColor: '#E6E1D3', borderRadius: 20, padding: 3, width: 120 },
     switchOption: { flex: 1, paddingVertical: 6, alignItems: 'center', borderRadius: 17 },
     switchActive: { backgroundColor: '#FFF', elevation: 2 },
     switchText: { fontSize: 12, fontWeight: 'bold', color: '#A09687' },
     switchTextActive: { color: '#6D5D4B' },
-
-    // Week Grid
     weekWrapper: { flex: 1, backgroundColor: '#D4C3A3', borderRadius: 20, overflow: 'hidden' },
-    weekHeader: { flexDirection: 'row', paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)' },
-    weekDayLabel: { flex: 1, alignItems: 'center' },
-    weekHeaderText: { fontWeight: 'bold', color: '#6D5D4B' },
-    gridBody: { flexDirection: 'row' },
-    timeColumn: { width: 40, alignItems: 'center' },
-    timeCell: { height: 70, justifyContent: 'center', alignItems: 'center' },
-    timeCellId: { fontSize: 12, fontWeight: 'bold', color: '#6D5D4B' },
-    timeCellTime: { fontSize: 8, color: '#8E7E6A' },
-    gridContainer: { flex: 1 },
-    gridRow: { flexDirection: 'row', height: 70 },
-    gridCell: { flex: 1, borderWidth: 0.2, borderColor: 'rgba(255,255,255,0.3)', padding: 2 },
-    pillContainer: { flex: 1, flexDirection: 'row' },
-    coursePill: { borderRadius: 6, marginHorizontal: 1, justifyContent: 'center', alignItems: 'center' },
-    pillText: { fontSize: 8, color: '#6D5D4B', fontWeight: '600' },
-    deleteBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF6B6B', width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center' },
-    zoomToggle: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#FFF', padding: 10, borderRadius: 20, elevation: 5 },
-
-    // Day Mode (你原本的樣式)
-    daySelector: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-    dayButton: { width: 60, height: 70, borderRadius: 30, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', elevation: 2 },
-    dayButtonActive: { backgroundColor: '#7B886F' },
-    dayEn: { fontSize: 12, color: '#1A1A1A' },
-    dayCn: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
-    textActive: { color: '#FFF' },
-    tableCard: { flex: 1, backgroundColor: '#EFF2F4', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 15 },
-    periodRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#CFD8DC', minHeight: 80 },
-    timeLabelContainer: { flex: 0.6, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#CFD8DC' },
-    periodLabel: { fontSize: 16, fontWeight: 'bold' },
-    timeRangeText: { fontSize: 10, textAlign: 'center' },
-    courseCellContainer: { flex: 3, paddingLeft: 10, justifyContent: 'center' },
-    courseEntry: { paddingVertical: 10 },
-    clashHighlight: { borderLeftWidth: 4, borderLeftColor: '#D88A63', backgroundColor: 'rgba(216, 138, 99, 0.05)' },
-    courseNameText: { fontSize: 14, fontWeight: 'bold' },
-    courseDetailText: { fontSize: 12, color: '#666' }
+    weekDayHeader: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 8 },
+    dayLabelCell: { flex: 1, alignItems: 'center' },
+    dayLabelText: { fontWeight: 'bold', color: '#6D5D4B' },
+    timetableBody: { flexDirection: 'row', flex: 1 },
+    timeSidebar: { width: 45, backgroundColor: 'rgba(255,255,255,0.1)' },
+    timeSideCell: { justifyContent: 'center', alignItems: 'center', borderBottomWidth: 0.3, borderColor: 'rgba(255,255,255,0.3)' },
+    timeSideId: { fontSize: 13, fontWeight: 'bold', color: '#6D5D4B' },
+    timeSideTime: { fontSize: 8, color: '#8E7E6A', textAlign: 'center', marginTop: 2 },
+    canvas: { flex: 1, position: 'relative' },
+    gridLineH: { position: 'absolute', width: '100%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
+    gridLineV: { position: 'absolute', width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.3)' },
+    courseItem: {
+        position: 'absolute',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        paddingHorizontal: 2,
+        elevation: 3,
+        borderWidth: 0.5,
+        borderColor: '#E6E1D3',
+        alignItems: 'center', // 💡 確保內部元件水平置中
+    },
+    courseTextContainer: {
+        width: '100%',
+        alignItems: 'center', // 💡 確保文字元件水平置中
+    },
+    unifiedText: {
+        fontWeight: 'bold',
+        color: '#6D5D4B',
+        textAlign: 'center',
+        lineHeight: 12
+    },
+    deleteBadge: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        backgroundColor: '#FF6B6B',
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10
+    },
 });
 
 export default TimetableScreen;
