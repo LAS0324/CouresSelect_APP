@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { CourseProvider } from '../src/context/CourseContext';
 import MainTabNavigator from '../src/navigation/MainTabNavigator';
@@ -20,6 +21,7 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 export default function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -28,13 +30,28 @@ export default function App() {
 
     useEffect(() => {
         // 監聽 Firebase 登入狀態
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            setIsInitializing(true); // 開始檢查狀態前先顯示 Loading
             if (user) {
+                // 檢查是否已經設定過資料
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists() && docSnap.data().setupCompleted) {
+                        setIsSetupComplete(true);
+                    } else {
+                        setIsSetupComplete(false);
+                    }
+                } catch (error) {
+                    console.error("讀取設定狀態失敗:", error);
+                    setIsSetupComplete(false);
+                }
                 setIsLoggedIn(true);
             } else {
                 setIsLoggedIn(false);
+                setIsSetupComplete(false);
             }
-            setIsInitializing(false);
+            setIsInitializing(false); // 檢查完畢，關閉 Loading
         });
 
         // 取消監聽
@@ -51,8 +68,8 @@ export default function App() {
                 <Stack.Screen options={{ headerShown: false }} />
 
                 {/* 階段 1：未登入 */}
-                {!isLoggedIn && (
-                    <LoginScreen onLogin={() => setIsLoggedIn(true)} />
+                {!isLoggedIn && !isInitializing && (
+                    <LoginScreen onLogin={() => {}} />
                 )}
 
                 {/* 階段 2：已登入但未選學校 */}
