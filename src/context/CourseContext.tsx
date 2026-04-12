@@ -1,20 +1,22 @@
 import React, { createContext, useContext, useState } from 'react';
 
-// 定義課程資料型別
+// 1. 定義基礎課程型別
 interface Course {
     id: string;
     name: string;
     teacher: string;
-    timeSlots: string[]; // 格式如 ["1-02", "1-03"] 代表週一第2,3節
+    timeSlots: string[];
     location: string;
 }
 
+// 2. 合併所有的介面定義 (Interface)
 interface CourseContextType {
     selectedCourses: Course[];
     addCourse: (course: Course) => void;
+    removeCourse: (courseId: string) => void; // 💡 確保這裡有 removeCourse
     currentSemester: string;
-    
-    // --- 學分檢核相關 ---
+
+    // 學分檢核相關
     passedGeneralCourses: { [key: string]: boolean };
     generalCreditsTotal: number;
     updateGeneralCredits: (courses: { [key: string]: boolean }, totalCredits: number) => void;
@@ -26,24 +28,30 @@ interface CourseContextType {
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
+// 3. 唯一的 CourseProvider
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
-    const [currentSemester, setCurrentSemester] = useState("114-2"); // 預設學期
-    
-    // --- 學分檢核狀態 ---
+    const [currentSemester] = useState("114-2");
+
+    // 學分檢核狀態
     const [passedGeneralCourses, setPassedGeneralCourses] = useState<{ [key: string]: boolean }>({});
     const [generalCreditsTotal, setGeneralCreditsTotal] = useState(0);
 
     const [passedMustCourses, setPassedMustCourses] = useState<{ [key: string]: boolean }>({});
     const [mustCreditsTotal, setMustCreditsTotal] = useState(0);
 
+    // --- 功能實作 ---
     const addCourse = (course: Course) => {
-        // 檢查是否已經選過（避免重複加入同一門課，但允許衝堂）
         if (!selectedCourses.find(c => c.id === course.id)) {
             setSelectedCourses([...selectedCourses, course]);
         }
     };
-    
+
+    // 💡 實作刪除邏輯
+    const removeCourse = (courseId: string) => {
+        setSelectedCourses(prev => prev.filter(c => c.id !== courseId));
+    };
+
     const updateGeneralCredits = (courses: { [key: string]: boolean }, totalCredits: number) => {
         setPassedGeneralCourses(courses);
         setGeneralCreditsTotal(totalCredits);
@@ -55,9 +63,10 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     return (
-        <CourseContext.Provider value={{ 
-            selectedCourses, 
-            addCourse, 
+        <CourseContext.Provider value={{
+            selectedCourses,
+            addCourse,
+            removeCourse, // 💡 記得傳出去
             currentSemester,
             passedGeneralCourses,
             generalCreditsTotal,

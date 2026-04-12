@@ -1,67 +1,83 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { useCourse } from '../context/CourseContext'; // 引入共享籃子
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+    Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet,
+    Text, TouchableOpacity, View, Alert
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useCourse } from '../context/CourseContext';
 import TopNavBar from '../navigation/TopNavBar';
+import { getGridData, sortOverlappingCourses } from '../utils/timetableUtils';
 
-// 根據「3/23-3/29 為第五週」反推，第一週週一為 2026-02-23
 const SEMESTER_START_DATE = new Date('2026-02-23');
 
 const TimetableScreen = () => {
-    const [selectedDay, setSelectedDay] = useState(0);
-    const [isWeeklyMode, setIsWeeklyMode] = useState(false);
+    // --- 狀態管理 ---
+    const [viewMode, setViewMode] = useState<'Week' | 'Day'>('Week');
+    const [selectedDay, setSelectedDay] = useState(0); // 專供 Day 模式使用
     const [currentWeek, setCurrentWeek] = useState(1);
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(1.0);
 
-    // 從籃子拿取選中的課程資料
-    const { selectedCourses } = useCourse();
+    const { selectedCourses, removeCourse } = useCourse();
 
     const days = [
-        { label: '一', en: 'Mon' },
-        { label: '二', en: 'Tue' },
-        { label: '三', en: 'Wed' },
-        { label: '四', en: 'Thu' },
-        { label: '五', en: 'Fri' },
+        { label: '一', en: 'Mon' }, { label: '二', en: 'Tue' },
+        { label: '三', en: 'Wed' }, { label: '四', en: 'Thu' }, { label: '五', en: 'Fri' },
     ];
 
-    // 節次資訊
     const periods = [
-        { id: '0M', time: '07:10\n08:00' },
-        { id: '01', time: '08:10\n09:00' },
-        { id: '02', time: '09:10\n10:00' },
-        { id: '03', time: '10:10\n11:00' },
-        { id: '04', time: '11:10\n12:00' },
-        { id: '0N', time: '12:10\n13:20' },
-        { id: '05', time: '13:30\n14:20' },
-        { id: '06', time: '14:30\n15:20' },
-        { id: '07', time: '15:30\n16:20' },
-        { id: '08', time: '16:30\n17:20' },
-        { id: '0E', time: '17:30\n18:20' },
-        { id: '09', time: '18:30\n19:15' },
-        { id: '10', time: '19:15\n20:00' },
-        { id: '11', time: '20:10\n20:55' },
+        { id: '0M', time: '07:10\n08:00' }, { id: '01', time: '08:10\n09:00' },
+        { id: '02', time: '09:10\n10:00' }, { id: '03', time: '10:10\n11:00' },
+        { id: '04', time: '11:10\n12:00' }, { id: '0N', time: '12:10\n13:20' },
+        { id: '05', time: '13:30\n14:20' }, { id: '06', time: '14:30\n15:20' },
+        { id: '07', time: '15:30\n16:20' }, { id: '08', time: '16:30\n17:20' },
+        { id: '0E', time: '17:30\n18:20' }, { id: '09', time: '18:30\n19:15' },
+        { id: '10', time: '19:15\n20:00' }, { id: '11', time: '20:10\n20:55' },
         { id: '12', time: '20:55\n21:40' },
     ];
 
-    // 動態計算正確週數
+    // 動態計算週數
     useEffect(() => {
         const today = new Date();
         const diffInMs = today.getTime() - SEMESTER_START_DATE.getTime();
-        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-        const week = Math.floor(diffInDays / 7) + 1;
-
-        if (week >= 1 && week <= 18) {
-            setCurrentWeek(week);
-        } else if (week > 18) {
-            setCurrentWeek(18);
-        } else {
-            setCurrentWeek(1);
-        }
+        const week = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7)) + 1;
+        setCurrentWeek(week >= 1 && week <= 18 ? week : (week > 18 ? 18 : 1));
     }, []);
 
-    // 核心邏輯：過濾出該天、該節次的課程
+    // 💡 核心資料：Week 模式用的二維網格
+    const gridData = useMemo(() => getGridData(selectedCourses, periods), [selectedCourses]);
+
+    // 💡 核心資料：Day 模式用的當天過濾
     const getCoursesBySlot = (dayIdx: number, periodId: string) => {
-        // 格式對應 Context 中的 "1-02" (星期-節次)
         const slotKey = `${dayIdx + 1}-${periodId}`;
         return selectedCourses.filter(course => course.timeSlots.includes(slotKey));
+    };
+
+    // --- Week 模式專用子組件 ---
+    const TimetableCell = ({ dayIdx, pIdx }: { dayIdx: number, pIdx: number }) => {
+        const cellCourses = gridData[dayIdx][pIdx];
+        const sorted = sortOverlappingCourses(cellCourses);
+
+        return (
+            <View style={styles.gridCell}>
+                <View style={styles.pillContainer}>
+                    {sorted.map((course, idx) => (
+                        <TouchableOpacity
+                            key={`${course.id}-${idx}`}
+                            onLongPress={() => setIsDeleteMode(true)}
+                            style={[styles.coursePill, { flex: 1, backgroundColor: '#FFF' }]}
+                        >
+                            {zoomLevel > 1.3 && <Text style={styles.pillText} numberOfLines={1}>{course.name}</Text>}
+                            {isDeleteMode && (
+                                <TouchableOpacity style={styles.deleteBadge} onPress={() => removeCourse(course.id)}>
+                                    <Text style={{ color: '#FFF', fontSize: 10 }}>×</Text>
+                                </TouchableOpacity>
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        );
     };
 
     return (
@@ -69,173 +85,157 @@ const TimetableScreen = () => {
             <TopNavBar title="課表" />
             <View style={styles.container}>
 
-                {/* Header 部分 */}
+                {/* 1️⃣ Switch Button 切換器 */}
                 <View style={styles.header}>
-                    <View>
-                        <Text style={styles.subTitle}>114下學期 第{currentWeek}週</Text>
-                    </View>
-                    <View style={styles.switchContainer}>
-                        <Text style={styles.switchLabel}>一週預覽模式</Text>
-                        <Switch
-                            value={isWeeklyMode}
-                            onValueChange={setIsWeeklyMode}
-                            trackColor={{ false: "#767577", true: '#7B886F' }}
-                            thumbColor={isWeeklyMode ? "#FFF" : "#f4f3f4"}
-                        />
-                    </View>
-                </View>
-
-                {/* 星期切換鈕 */}
-                <View style={styles.daySelector}>
-                    {days.map((day, index) => (
+                    <Text style={styles.subTitle}>114下學期 第{currentWeek}週</Text>
+                    <View style={styles.customSwitch}>
                         <TouchableOpacity
-                            key={index}
-                            style={[styles.dayButton, selectedDay === index && styles.dayButtonActive]}
-                            onPress={() => setSelectedDay(index)}
+                            style={[styles.switchOption, viewMode === 'Week' && styles.switchActive]}
+                            onPress={() => { setViewMode('Week'); setIsDeleteMode(false); }}
                         >
-                            <Text style={[styles.dayEn, selectedDay === index && styles.textActive]}>{day.en}</Text>
-                            <Text style={[styles.dayCn, selectedDay === index && styles.textActive]}>{day.label}</Text>
+                            <Text style={[styles.switchText, viewMode === 'Week' && styles.switchTextActive]}>WEEK</Text>
                         </TouchableOpacity>
-                    ))}
+                        <TouchableOpacity
+                            style={[styles.switchOption, viewMode === 'Day' && styles.switchActive]}
+                            onPress={() => { setViewMode('Day'); setIsDeleteMode(false); }}
+                        >
+                            <Text style={[styles.switchText, viewMode === 'Day' && styles.switchTextActive]}>DAY</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
-                {/* 課表主體 */}
-                <View style={styles.tableCard}>
-                    <View style={styles.tableHeader}>
-                        <View style={{ flex: 0.6 }} />
-                        <View style={{ flex: 3, flexDirection: 'row' }}>
-                            <Text style={[styles.headerColText, { flex: 1.2 }]}>課堂名稱</Text>
-                            <Text style={[styles.headerColText, { flex: 1 }]}>上課教室</Text>
-                            <Text style={[styles.headerColText, { flex: 1 }]}>授課老師</Text>
+                {viewMode === 'Week' ? (
+                    /* 2️⃣ WEEK 模式佈局 */
+                    <View style={styles.weekWrapper}>
+                        <View style={styles.weekHeader}>
+                            <View style={{ width: 40 }} />
+                            {days.map((d, i) => (
+                                <View key={i} style={styles.weekDayLabel}>
+                                    <Text style={styles.weekHeaderText}>{d.label}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View style={styles.gridBody}>
+                                <View style={styles.timeColumn}>
+                                    {periods.map(p => (
+                                        <View key={p.id} style={styles.timeCell}>
+                                            <Text style={styles.timeCellId}>{p.id}</Text>
+                                            <Text style={styles.timeCellTime}>{p.time.split('\n')[0]}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                                <View style={styles.gridContainer}>
+                                    {periods.map((_, pIdx) => (
+                                        <View key={pIdx} style={styles.gridRow}>
+                                            {days.map((_, dIdx) => (
+                                                <TimetableCell key={dIdx} dayIdx={dIdx} pIdx={pIdx} />
+                                            ))}
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        </ScrollView>
+                        <TouchableOpacity style={styles.zoomToggle} onPress={() => setZoomLevel(zoomLevel === 1.0 ? 1.5 : 1.0)}>
+                            <Text>{zoomLevel === 1.0 ? "🔍 放大顯示文字" : "🤏 縮小看全圖"}</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    /* 3️⃣ DAY 模式佈局 (恢復你原本的設計) */
+                    <View style={{ flex: 1 }}>
+                        <View style={styles.daySelector}>
+                            {days.map((day, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={[styles.dayButton, selectedDay === index && styles.dayButtonActive]}
+                                    onPress={() => setSelectedDay(index)}
+                                >
+                                    <Text style={[styles.dayEn, selectedDay === index && styles.textActive]}>{day.en}</Text>
+                                    <Text style={[styles.dayCn, selectedDay === index && styles.textActive]}>{day.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                        <View style={styles.tableCard}>
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {periods.map((p) => {
+                                    const dayCourses = getCoursesBySlot(selectedDay, p.id);
+                                    return (
+                                        <View key={p.id} style={styles.periodRow}>
+                                            <View style={styles.timeLabelContainer}>
+                                                <Text style={styles.periodLabel}>{p.id}</Text>
+                                                <Text style={styles.timeRangeText}>{p.time}</Text>
+                                            </View>
+                                            <View style={styles.courseCellContainer}>
+                                                {dayCourses.map((c, i) => (
+                                                    <View key={i} style={[styles.courseEntry, dayCourses.length > 1 && styles.clashHighlight]}>
+                                                        <Text style={styles.courseNameText}>{c.name}</Text>
+                                                        <Text style={styles.courseDetailText}>{c.location}</Text>
+                                                        <Text style={styles.courseDetailText}>{c.teacher}</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </ScrollView>
                         </View>
                     </View>
-
-                    <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-                        {periods.map((p) => {
-                            // 動態抓取課程
-                            const dayCourses = getCoursesBySlot(selectedDay, p.id);
-
-                            return (
-                                <View key={p.id} style={styles.periodRow}>
-                                    {/* 左側節次與時間 */}
-                                    <View style={styles.timeLabelContainer}>
-                                        <Text style={styles.periodLabel}>{p.id}</Text>
-                                        <Text style={styles.timeRangeText}>{p.time}</Text>
-                                    </View>
-
-                                    {/* 右側課程內容：若有課則渲染，沒課則留空 */}
-                                    <View style={styles.courseCellContainer}>
-                                        {dayCourses.length > 0 ? (
-                                            dayCourses.map((c, i) => (
-                                                <View key={i} style={[
-                                                    styles.courseEntry,
-                                                    dayCourses.length > 1 && styles.clashHighlight
-                                                ]}>
-                                                    <Text style={styles.courseNameText} numberOfLines={2}>{c.name}</Text>
-                                                    <Text style={styles.courseDetailText}>{c.location}</Text>
-                                                    <Text style={styles.courseDetailText}>{c.teacher}</Text>
-                                                </View>
-                                            ))
-                                        ) : (
-                                            <View style={styles.emptyPeriodSpacer} />
-                                        )}
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
+                )}
             </View>
         </SafeAreaView>
     );
 };
 
+// ... 你的樣式表 ...
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#FAF7ED',
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
-    },
-    container: { flex: 1, paddingHorizontal: 20 },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 15,
-        marginBottom: 20
-    },
-    mainTitle: { fontSize: 36, fontWeight: 'bold', color: '#1A1A1A' },
-    subTitle: { fontSize: 22, color: '#444', marginTop: 2 },
-    switchContainer: { alignItems: 'center' },
-    switchLabel: { fontSize: 11, color: '#888', marginBottom: 2 },
+    safeArea: { flex: 1, backgroundColor: '#FAF7ED' },
+    container: { flex: 1, paddingHorizontal: 15 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 15 },
+    subTitle: { fontSize: 20, fontWeight: 'bold', color: '#6D5D4B' },
 
-    daySelector: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20
-    },
-    dayButton: {
-        width: 62,
-        height: 72,
-        borderRadius: 31,
-        backgroundColor: '#FFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 3
-    },
+    // Switch Button
+    customSwitch: { flexDirection: 'row', backgroundColor: '#E6E1D3', borderRadius: 20, padding: 3, width: 120 },
+    switchOption: { flex: 1, paddingVertical: 6, alignItems: 'center', borderRadius: 17 },
+    switchActive: { backgroundColor: '#FFF', elevation: 2 },
+    switchText: { fontSize: 12, fontWeight: 'bold', color: '#A09687' },
+    switchTextActive: { color: '#6D5D4B' },
+
+    // Week Grid
+    weekWrapper: { flex: 1, backgroundColor: '#D4C3A3', borderRadius: 20, overflow: 'hidden' },
+    weekHeader: { flexDirection: 'row', paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)' },
+    weekDayLabel: { flex: 1, alignItems: 'center' },
+    weekHeaderText: { fontWeight: 'bold', color: '#6D5D4B' },
+    gridBody: { flexDirection: 'row' },
+    timeColumn: { width: 40, alignItems: 'center' },
+    timeCell: { height: 70, justifyContent: 'center', alignItems: 'center' },
+    timeCellId: { fontSize: 12, fontWeight: 'bold', color: '#6D5D4B' },
+    timeCellTime: { fontSize: 8, color: '#8E7E6A' },
+    gridContainer: { flex: 1 },
+    gridRow: { flexDirection: 'row', height: 70 },
+    gridCell: { flex: 1, borderWidth: 0.2, borderColor: 'rgba(255,255,255,0.3)', padding: 2 },
+    pillContainer: { flex: 1, flexDirection: 'row' },
+    coursePill: { borderRadius: 6, marginHorizontal: 1, justifyContent: 'center', alignItems: 'center' },
+    pillText: { fontSize: 8, color: '#6D5D4B', fontWeight: '600' },
+    deleteBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF6B6B', width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center' },
+    zoomToggle: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#FFF', padding: 10, borderRadius: 20, elevation: 5 },
+
+    // Day Mode (你原本的樣式)
+    daySelector: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+    dayButton: { width: 60, height: 70, borderRadius: 30, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', elevation: 2 },
     dayButtonActive: { backgroundColor: '#7B886F' },
-    dayEn: { fontSize: 15, color: '#1A1A1A', fontWeight: '600' },
-    dayCn: { fontSize: 15, color: '#1A1A1A' },
+    dayEn: { fontSize: 12, color: '#1A1A1A' },
+    dayCn: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
     textActive: { color: '#FFF' },
-
-    tableCard: {
-        flex: 1,
-        backgroundColor: '#EFF2F4',
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
-        padding: 15,
-        paddingBottom: 0
-    },
-    tableHeader: {
-        flexDirection: 'row',
-        paddingBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#CFD8DC'
-    },
-    headerColText: { textAlign: 'center', fontSize: 12, color: '#1A1A1A', fontWeight: 'bold' },
-
-    periodRow: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#CFD8DC',
-        minHeight: 85
-    },
-    timeLabelContainer: {
-        flex: 0.6,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 8,
-        borderRightWidth: 0.5,
-        borderRightColor: '#CFD8DC'
-    },
-    periodLabel: { fontSize: 15, fontWeight: 'bold', color: '#1A1A1A' },
-    timeRangeText: { fontSize: 12, color: '#1A1A1A', textAlign: 'center', lineHeight: 14 },
-
-    courseCellContainer: { flex: 3, justifyContent: 'center' },
-    courseEntry: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        width: '100%'
-    },
-    clashHighlight: {
-        borderLeftWidth: 4,
-        borderLeftColor: '#D88A63',
-        backgroundColor: 'rgba(216, 138, 99, 0.08)'
-    },
-    courseNameText: { flex: 1.2, textAlign: 'center', fontSize: 13, color: '#263238', fontWeight: '600', paddingHorizontal: 4 },
-    courseDetailText: { flex: 1, textAlign: 'center', fontSize: 12, color: '#546E7A' },
-    emptyPeriodSpacer: { flex: 1, height: 85 },
+    tableCard: { flex: 1, backgroundColor: '#EFF2F4', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 15 },
+    periodRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#CFD8DC', minHeight: 80 },
+    timeLabelContainer: { flex: 0.6, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#CFD8DC' },
+    periodLabel: { fontSize: 16, fontWeight: 'bold' },
+    timeRangeText: { fontSize: 10, textAlign: 'center' },
+    courseCellContainer: { flex: 3, paddingLeft: 10, justifyContent: 'center' },
+    courseEntry: { paddingVertical: 10 },
+    clashHighlight: { borderLeftWidth: 4, borderLeftColor: '#D88A63', backgroundColor: 'rgba(216, 138, 99, 0.05)' },
+    courseNameText: { fontSize: 14, fontWeight: 'bold' },
+    courseDetailText: { fontSize: 12, color: '#666' }
 });
 
 export default TimetableScreen;
