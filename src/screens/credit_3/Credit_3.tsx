@@ -1,11 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCourse } from '../../context/CourseContext';
 import TopNavBar from '../../navigation/TopNavBar';
 
 export default function Credit({ navigation }: any) {
-    const handlePress = (title: string) => {
-        navigation.navigate('CreditDetail', { title });
+    const { generalCreditsTotal, mustCreditsTotal } = useCourse();
+
+    const handlePress = (route: string) => {
+        navigation.navigate(route);
     };
+
+    // 其他學分暫時寫死
+    const mustCredits = mustCreditsTotal || 0;
+    const arrayCredits = 46;
+    const flexibleCredits = 0;
+    const currentTotal = mustCredits + generalCreditsTotal + arrayCredits + flexibleCredits;
+    const TOTAL_REQUIRED = 128;
+
+    // 計算半圓旋轉角度 (-45 度為 0%， 135 度為 100%)
+    // 總共 180 度範圍 -> 比例 * 180 - 45
+    const progressRatio = Math.min(currentTotal / TOTAL_REQUIRED, 1);
+    const rotationDegree = (progressRatio * 180) - 45;
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -19,7 +34,7 @@ export default function Credit({ navigation }: any) {
                         {/* 灰色背景底 */}
                         <View style={[styles.semiCircleBg, { borderColor: '#D3D3D3' }]} />
                         {/* 綠色進度條覆蓋在上面 */}
-                        <View style={[styles.semiCircleFill, { borderColor: '#23A85B', transform: [{ rotate: '45deg' }] }]} />
+                        <View style={[styles.semiCircleFill, { borderColor: '#23A85B', transform: [{ rotate: `${rotationDegree}deg` }] }]} />
                     </View>
 
                     <View style={styles.centerContent}>
@@ -28,7 +43,7 @@ export default function Credit({ navigation }: any) {
                             <Text style={styles.treeText}>封面的樹</Text>
                             <Text style={styles.treeText}>(成長動畫)</Text>
                             <Text style={styles.scoreText}>
-                                72 <Text style={styles.scoreTotal}>/128</Text>
+                                {currentTotal} <Text style={styles.scoreTotal}>/128</Text>
                             </Text>
                         </View>
                     </View>
@@ -36,10 +51,10 @@ export default function Credit({ navigation }: any) {
 
                 {/* 學分類別列表 */}
                 <View style={styles.listSection}>
-                    <CreditCard title="校必修學分" current={12} total={14} onPress={() => handlePress('校必修學分')} />
-                    <CreditCard title="通識學分" current={14} total={18} onPress={() => handlePress('通識學分')} />
-                    <CreditCard title="系專門課程" current={46} total={91} onPress={() => handlePress('系專門課程')} />
-                    <CreditCard title="彈性課程" current={0} total={5} onPress={() => handlePress('彈性課程')} />
+                    <CreditCard title="校必修學分" current={mustCredits} total={14} onPress={() => handlePress('CreditDetailMust')} />
+                    <CreditCard title="通識學分" current={generalCreditsTotal} total={18} onPress={() => handlePress('CreditDetailGeneral')} />
+                    <CreditCard title="系專門課程" current={arrayCredits} total={91} onPress={() => handlePress('CreditDetailMajor')} />
+                    <CreditCard title="彈性課程" current={flexibleCredits} total={5} onPress={() => handlePress('CreditDetailFlexible')} />
                 </View>
             </ScrollView>
         </SafeAreaView>

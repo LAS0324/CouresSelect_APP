@@ -1,22 +1,90 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
-// 定義組件接收的參數類型 (TypeScript 語法)
+// 初始化 Firebase Config (Web SDK - 支援 Expo Go 的版本)
+const firebaseConfig = {
+    apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
+    authDomain: "courseapp-788ad.firebaseapp.com",
+    projectId: "courseapp-788ad",
+    storageBucket: "courseapp-788ad.firebasestorage.app",
+    messagingSenderId: "650322013005",
+    appId: "1:650322013005:web:5855bdc8aa1c0dc70be504",
+    measurementId: "G-L6FBFFW8PM"
+};
+
+// 避免 React Native 熱更新時重複初始化 Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+
+// 定義組件接收的參數類型
 interface LoginProps {
     onLogin: () => void;
 }
 
 const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    // 處理登入
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert("請填寫完整", "請輸入信箱與密碼！");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            await signInWithEmailAndPassword(auth, email, password);
+            onLogin(); // 登入成功，導向主頁面
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert("登入失敗", "請確認您的信箱與密碼是否正確，或嘗試註冊。");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 處理註冊
+    const handleRegister = async () => {
+        if (!email || !password) {
+            Alert.alert("請填寫完整", "請輸入信箱與密碼！");
+            return;
+        }
+        
+        try {
+            setIsLoading(true);
+            await createUserWithEmailAndPassword(auth, email, password);
+            Alert.alert("註冊成功", "您的帳號已建立，您現在已登入！");
+            onLogin();
+        } catch (error: any) {
+            console.error(error);
+            if (error.code === "auth/email-already-in-use") {
+                Alert.alert("註冊失敗", "這個信箱已經被註冊過囉！");
+            } else if (error.code === "auth/weak-password") {
+                Alert.alert("註冊失敗", "密碼太弱了，請至少輸入 6 位數。");
+            } else if (error.code === "auth/invalid-email") {
+                Alert.alert("註冊失敗", "信箱格式不正確！");
+            } else {
+                Alert.alert("註冊失敗", error.message);
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.contentContainer}>
-
-                {/* 插圖區域：如果圖片還沒放好，會顯示一個淡色的圓角方塊 */}
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.contentContainer}
+            >
+                {/* 插圖區域 */}
                 <View style={styles.imageWrapper}>
                     <View style={styles.imagePlaceholder}>
-                        {/* 等你把 owl.png 放入 src/images 後，可以解開下方註解 */}
-                        {/* <Image source={require('../images/owl.png')} style={styles.image} /> */}
                         <Text style={{ fontSize: 50 }}>🦉</Text>
                     </View>
                     <View style={styles.badge}>
@@ -30,20 +98,52 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
                     <Text style={styles.subtitle}>開展您的學術禪意之旅</Text>
                 </View>
 
-                {/* Google 登入按鈕：按下後觸發 onLogin */}
+                {/* 使用者輸入區域 */}
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="請輸入 Email 信箱"
+                        placeholderTextColor="#999"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="請輸入密碼 (至少 6 位數)"
+                        placeholderTextColor="#999"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
+                </View>
+
+                {/* Email 登入按鈕 */}
                 <TouchableOpacity
-                    style={styles.googleButton}
-                    onPress={onLogin}
+                    style={styles.loginButton}
+                    onPress={handleLogin}
                     activeOpacity={0.8}
+                    disabled={isLoading}
                 >
-                    <View style={styles.googleIconPlaceholder} />
-                    <Text style={styles.googleButtonText}>使用 Google 帳號登入</Text>
+                    <Text style={styles.loginButtonText}>
+                        {isLoading ? "處理中..." : "登入"}
+                    </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity>
-                    <Text style={styles.otherLoginText}>其他登入方式 →</Text>
+                {/* 註冊按鈕 */}
+                <TouchableOpacity
+                    style={[styles.loginButton, styles.registerButton]}
+                    onPress={handleRegister}
+                    activeOpacity={0.8}
+                    disabled={isLoading}
+                >
+                    <Text style={[styles.loginButtonText, styles.registerButtonText]}>
+                        還沒有帳號嗎？點此註冊
+                    </Text>
                 </TouchableOpacity>
-            </View>
+
+            </KeyboardAvoidingView>
 
             {/* 底部版本資訊 */}
             <View style={styles.footer}>
@@ -57,35 +157,27 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
-        alignItems: 'center',
-        justifyContent: 'space-between',
     },
     contentContainer: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
+        alignItems: "center",
+        justifyContent: "center",
         paddingHorizontal: 40,
     },
     imageWrapper: {
-        position: 'relative',
-        marginBottom: 40,
+        position: "relative",
+        marginBottom: 30,
     },
     imagePlaceholder: {
-        width: 220,
-        height: 220,
-        backgroundColor: '#E6E5DF',
+        width: 180,
+        height: 180,
+        backgroundColor: "#E6E5DF",
         borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    image: {
-        width: 220,
-        height: 220,
-        borderRadius: 30,
+        justifyContent: "center",
+        alignItems: "center",
     },
     badge: {
-        position: 'absolute',
+        position: "absolute",
         bottom: -10,
         right: -10,
         backgroundColor: COLORS.accent,
@@ -93,61 +185,74 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 20,
         elevation: 4,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
     },
     badgeText: {
         fontSize: 14,
-        color: '#6B603D',
-        fontWeight: 'bold',
+        color: "#6B603D",
+        fontWeight: "bold",
     },
     textSection: {
-        alignItems: 'center',
-        marginBottom: 50,
+        alignItems: "center",
+        marginBottom: 40,
     },
     title: {
         fontSize: 28,
-        fontWeight: 'bold',
+        fontWeight: "bold",
         color: COLORS.text,
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: '#999',
+        color: "#999",
     },
-    googleButton: {
-        flexDirection: 'row',
-        backgroundColor: '#E6E5DF',
-        width: '100%',
-        height: 60,
-        borderRadius: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
+    inputContainer: {
+        width: "100%",
         marginBottom: 20,
     },
-    googleIconPlaceholder: {
-        width: 20,
-        height: 20,
-        backgroundColor: '#AAA',
-        marginRight: 10,
-        borderRadius: 4,
-    },
-    googleButtonText: {
+    input: {
+        backgroundColor: "#FFF",
+        width: "100%",
+        height: 55,
+        borderRadius: 15,
+        paddingHorizontal: 20,
         fontSize: 16,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: "#E6E5DF",
         color: COLORS.text,
-        fontWeight: '600',
     },
-    otherLoginText: {
-        color: '#999',
-        fontSize: 14,
+    loginButton: {
+        backgroundColor: COLORS.primary || "#4A90E2", 
+        width: "100%",
+        height: 55,
+        borderRadius: 30,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 15,
+    },
+    loginButtonText: {
+        fontSize: 16,
+        color: "#FFF",
+        fontWeight: "bold",
+    },
+    registerButton: {
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        borderColor: COLORS.primary || "#4A90E2",
+    },
+    registerButtonText: {
+        color: COLORS.primary || "#4A90E2",
     },
     footer: {
-        marginBottom: 20,
+        alignItems: "center",
+        paddingBottom: 20,
     },
     footerText: {
         fontSize: 10,
-        color: '#CCC',
+        color: "#CCC",
         letterSpacing: 1,
     },
 });

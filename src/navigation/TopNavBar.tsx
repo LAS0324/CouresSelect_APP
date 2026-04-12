@@ -11,18 +11,33 @@ interface TopNavBarProps {
     showMenu?: boolean;
     showInfo?: boolean;
     showRightMenu?: boolean;
+    showBack?: boolean;
+    onBackPress?: () => void;
+    onRightMenuPress?: () => void;
 }
 
-const TopNavBar: React.FC<TopNavBarProps> = ({ title = '選課', showMenu = true, showInfo = true, showRightMenu = false }) => {
+const TopNavBar: React.FC<TopNavBarProps> = ({ 
+    title = '選課', 
+    showMenu = true, 
+    showInfo = true, 
+    showRightMenu = false,
+    showBack = false,
+    onBackPress,
+    onRightMenuPress
+}) => {
     return (
         <View style={styles.container}>
-            {/* 最左邊：Menu 圖示 (24x24, 純黑色) */}
-            {showMenu ? (
+            {/* 最左邊：Menu 或 返回 圖示 */}
+            {showBack ? (
+                <TouchableOpacity activeOpacity={0.7} onPress={onBackPress}>
+                    <Ionicons name="chevron-back" size={28} color={COLORS.navBarIcon} />
+                </TouchableOpacity>
+            ) : showMenu ? (
                 <TouchableOpacity activeOpacity={0.7}>
                     <Ionicons name="menu" size={24} color={COLORS.navBarIcon} />
                 </TouchableOpacity>
             ) : (
-                <View style={{ width: 24 }} /> /* 佔位用，確保右側圖示不會跑版 */
+                <View style={{ width: 28 }} />
             )}
 
             {/* 中間：Container (寬度 100, 高度 24) 包含文字 */}
@@ -34,14 +49,16 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ title = '選課', showMenu = true
             <View style={styles.rightContainer}>
                 {showInfo && (
                     <TouchableOpacity activeOpacity={0.7} style={styles.iconMargin}>
+                        <Ionicons name="notifications-outline" size={24} color={COLORS.navBarIcon} />
+                    </TouchableOpacity>
+                )}
+                {showInfo && (
+                    <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined}>
                         <Ionicons name="information-circle-outline" size={24} color={COLORS.navBarIcon} />
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined}>
-                    <Ionicons name="notifications-outline" size={24} color={COLORS.navBarIcon} />
-                </TouchableOpacity>
                 {showRightMenu && (
-                    <TouchableOpacity activeOpacity={0.7}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={onRightMenuPress}>
                         <Image source={{ uri: menuSvgData }} style={{ width: 24, height: 24, tintColor: COLORS.navBarIcon }} contentFit="contain" />
                     </TouchableOpacity>
                 )}

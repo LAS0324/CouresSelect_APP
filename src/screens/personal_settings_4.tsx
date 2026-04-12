@@ -1,9 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, signOut } from 'firebase/auth';
+import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import TopNavBar from '../navigation/TopNavBar';
 import { COLORS } from '../styles/theme';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
+    authDomain: "courseapp-788ad.firebaseapp.com",
+    projectId: "courseapp-788ad",
+    storageBucket: "courseapp-788ad.firebasestorage.app",
+    messagingSenderId: "650322013005",
+    appId: "1:650322013005:web:5855bdc8aa1c0dc70be504",
+    measurementId: "G-L6FBFFW8PM"
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const darkModeSvgData = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMjFDOS41IDIxIDcuMzc1IDIwLjEyNSA1LjYyNSAxOC4zNzVDMy44NzUgMTYuNjI1IDMgMTQuNSAzIDEyQzMgOS41IDMuODc1IDcuMzc1IDUuNjI1IDUuNjI1QzcuMzc1IDMuODc1IDkuNSAzIDEyIDNDMTIuMjMzMyAzIDEyLjQ2MjUgMy4wMDgzMyAxMi42ODc1IDMuMDI1QzEyLjkxMjUgMy4wNDE2NyAxMy4xMzMzIDMuMDY2NjcgMTMuMzUgMy4xQzEyLjY2NjcgMy41ODMzMyAxMi4xMjA4IDQuMjEyNSAxMS43MTI1IDQuOTg3NUMxMS4zMDQyIDUuNzYyNSAxMS4xIDYuNiAxMS4xIDcuNUMxMS4xIDkgMTEuNjI1IDEwLjI3NSAxMi42NzUgMTEuMzI1QzEzLjcyNSAxMi4zNzUgMTUgMTIuOSAxNi41IDEyLjlDMTcuNDE2NyAxMi45IDE4LjI1ODMgMTIuNjk1OCAxOS4wMjUgMTIuMjg3NUMxOS43OTE3IDExLjg3OTIgMjAuNDE2NyAxMS4zMzMzIDIwLjkgMTAuNjVDMjAuOTMzMyAxMC44NjY3IDIwLjk1ODMgMTEuMDg3NSAyMC45NzUgMTEuMzEyNUMyMC45OTE3IDExLjUzNzUgMjEgMTEuNzY2NyAyMSAxMkMyMSAxNC41IDIwLjEyNSAxNi42MjUgMTguMzc1IDE4LjM3NUMxNi42MjUgMjAuMTI1IDE0LjUgMjEgMTIgMjFaTTEyIDE5QzEzLjQ2NjcgMTkgMTQuNzgzMyAxOC41OTU4IDE1Ljk1IDE3Ljc4NzVDMTcuMTE2NyAxNi45NzkyIDE3Ljk2NjcgMTUuOTI1IDE4LjUgMTQuNjI1QzE4LjE2NjcgMTQuNzA4MyAxNy44MzMzIDE0Ljc3NSAxNy41IDE0LjgyNUMxNy4xNjY3IDE0Ljg3NSAxNi44MzMzIDE0LjkgMTYuNSAxNC45QzE0LjQ1IDE0LjkgMTIuNzA0MiAxNC4xNzkyIDExLjI2MjUgMTIuNzM3NUM5LjgyMDgzIDExLjI5NTggOS4xIDkuNTUgOS4xIDcuNUM5LjEgNy4xNjY2NyA5LjEyNSA2LjgzMzMzIDkuMTc1IDYuNUM5LjIyNSA2LjE2NjY3IDkuMjkxNjcgNS44MzMzMyA5LjM3NSA1LjVDOC4wNzUgNi4wMzMzMyA3LjAyMDgzIDYuODgzMzMgNi4yMTI1IDguMDVDNS40MDQxNyA5LjIxNjY3IDUgMTAuNTMzMyA1IDEyQzUgMTMuOTMzMyA1LjY4MzMzIDE1LjU4MzMgNy4wNSAxNi45NUM4LjQxNjY3IDE4LjMxNjcgMTAuMDY2NyAxOSAxMiAxOVoiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=";
 const chevronForwardSvgData = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIuNiAxMkw4IDcuNEw5LjQgNkwxNS40IDEyTDkuNCAxOEw4IDE2LjZMMTIuNiAxMloiIGZpbGw9IiMwMDAwMDAiLz48L3N2Zz4=";
@@ -28,31 +45,69 @@ const logoutOption = {
     icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwLjE1IDEzSDhWMTFIMjAuMTVMMTguNiA5LjQ1TDIwIDhMMjQgMTJMMjAgMTZMMTguNiAxNC41NUwyMC4xNSAxM1pNMTUgOVY1SDVWMTlIMTVWMTVIMTdWMTlDMTcgMTkuNTUgMTYuODA0MiAyMC4wMjA4IDE2LjQxMjUgMjAuNDEyNUMxNi4wMjA4IDIwLjgwNDIgMTUuNTUgMjEgMTUgMjFINUM0LjQ1IDIxIDMuOTc5MTcgMjAuODA0MiAzLjU4NzUgMjAuNDEyNUMzLjE5NTgzIDIwLjAyMDggMyAxOS41NSAzIDE5VjVDMyA0LjQ1IDMuMTk1ODMgMy45NzkxNyAzLjU4NzUgMy41ODc1QzMuOTc5MTcgMy4xOTU4MyA0LjQ1IDMgNSAzSDE1QzE1LjU1IDMgMTYuMDIwOCAzLjE5NTgzIDE2LjQxMjUgMy41ODc1QzE2LjgwNDIgMy45NzkxNyAxNyA0LjQ1IDE3IDVWOUgxNVoiIGZpbGw9IiNGRkZFRkEiLz4KPC9zdmc+"
 };
 
-export default function PersonalSettings() {
-    const [name, setName] = useState('王辰左');
-    const [tempName, setTempName] = useState('');
-    const [isModalVisible, setIsModalVisible] = useState(false);
+export default function PersonalSettings({ navigation }: any) {
+    // 顯示在畫面上的狀態
+    const [name, setName] = useState('您的名字');
+    const [department, setDepartment] = useState('數位科技設計學系');
+    const [className, setClassName] = useState('數位二甲');
+    const [studentId, setStudentId] = useState('111319100');
+
     const [isDarkMode, setIsDarkMode] = useState(false);
 
+    // 取得當前使用者
+    const currentUser = auth.currentUser;
+    const userEmail = currentUser?.email || "未登入 Email";
+
+    // 監聽依賴 Firestore 的即時更新
+    React.useEffect(() => {
+        if (!currentUser) return;
+        
+        const docRef = doc(db, "users", currentUser.uid);
+        const unsubscribe = onSnapshot(docRef, (userDoc) => {
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                if (data.name) setName(data.name);
+                if (data.department) setDepartment(data.department);
+                if (data.className) setClassName(data.className);
+                if (data.studentId) setStudentId(data.studentId);
+            }
+        }, (error) => {
+            console.error("監聽使用者資料失敗:", error);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
+
     const handleEditPress = () => {
-        setTempName(name); // 點擊時，把現在的名字帶入編輯框
-        setIsModalVisible(true);
+        // 使用 Stack 跳轉到編輯個人資料畫面
+        navigation.navigate('EditProfile');
     };
 
-    const handleConfirm = () => {
-        // 先檢查如果名字長度大於 8 個字，就跳出提示並阻擋存檔
-        if (tempName.length > 8) {
-            Alert.alert('輸入錯誤', '名字長度不可超過八個字');
-            return;
-        }
-        
-        setName(tempName); // 按下確定，更新名字
-        setIsModalVisible(false);
+    const handleLogout = () => {
+        Alert.alert('登出確認', '確定要登出目前的帳號嗎？', [
+            { text: '取消', style: 'cancel' },
+            { 
+                text: '確定', 
+                style: 'destructive',
+                onPress: () => {
+                    signOut(auth).catch((error) => {
+                        console.error('Logout error: ', error);
+                        Alert.alert('登出失敗', '出了點問題，請稍後再試。');
+                    });
+                }
+            }
+        ]);
     };
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <TopNavBar title="設定" showMenu={false} showInfo={false} showRightMenu={true} />
+            <TopNavBar 
+                title="設定" 
+                showMenu={false} 
+                showInfo={false} 
+                showRightMenu={true} 
+                onRightMenuPress={handleEditPress} 
+            />
             
             <ScrollView contentContainerStyle={styles.container}>
                 {/* 頭像與編輯圓圈組合區 */}
@@ -79,21 +134,21 @@ export default function PersonalSettings() {
 
                 {/* Email 顯示區塊 */}
                 <View style={styles.emailContainer}>
-                    <Text style={styles.emailText}>Ray123321@gmail.com</Text>
+                    <Text style={styles.emailText}>{userEmail}</Text>
                 </View>
 
                 {/* 班級、學號、學院標籤區塊 */}
-                <View style={styles.tagsContainer}>
+                <TouchableOpacity onPress={handleEditPress} style={styles.tagsContainer} activeOpacity={0.7}>
                     <View style={styles.tagBadge}>
-                        <Text style={styles.tagText}>數位科技設計學系</Text>
+                        <Text style={styles.tagText}>{department}</Text>
                     </View>
                     <View style={styles.tagBadge}>
-                        <Text style={styles.tagText}>數位二甲</Text>
+                        <Text style={styles.tagText}>{className}</Text>
                     </View>
                     <View style={styles.tagBadge}>
-                        <Text style={styles.tagText}>111319100</Text>
+                        <Text style={styles.tagText}>{studentId}</Text>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* 330px 設定選項容器 */}
                 <View style={[styles.mainSettingsContainer, { backgroundColor: COLORS.settingsCardBg }]}>
@@ -140,7 +195,11 @@ export default function PersonalSettings() {
 
                 {/* 登出獨立區域 */}
                 <View style={[styles.mainSettingsContainer, { backgroundColor: COLORS.settingsCardBg, marginTop: 20, paddingBottom: 0 }]}>
-                    <TouchableOpacity style={[styles.settingRow, { marginTop: 20, marginBottom: 20 }]} activeOpacity={0.7}>
+                    <TouchableOpacity 
+                        style={[styles.settingRow, { marginTop: 20, marginBottom: 20 }]} 
+                        activeOpacity={0.7}
+                        onPress={handleLogout}
+                    >
                         <View style={[styles.settingIconCircle, { backgroundColor: COLORS.settingIconBg }]}>
                             <Image 
                                 source={{ uri: logoutOption.icon }} 
@@ -161,47 +220,6 @@ export default function PersonalSettings() {
                 
             
             </ScrollView>
-
-            {/* 彈出式修改名字對話框 (Modal) */}
-            <Modal visible={isModalVisible} transparent animationType="fade">
-                <KeyboardAvoidingView 
-                    style={styles.modalOverlay}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    // 這行可以微調讓彈窗避開鍵盤後，能在剩餘視窗再偏上 (而不是卡死在正中央)
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? -50 : 0} 
-                >
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>修改名字</Text>
-                        <Text style={styles.modalSubtitle}>請輸入新的名字</Text>
-                        
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                style={styles.modalInput}
-                                value={tempName}
-                                onChangeText={setTempName}
-                                autoFocus
-                                returnKeyType="done"
-                                onSubmitEditing={handleConfirm}
-                                selectionColor="#007AFF" // iOS 預設的深藍色標記
-                            />
-                        </View>
-
-                        <View style={styles.dividerX} />
-                        
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity style={styles.modalButton} onPress={() => setIsModalVisible(false)} activeOpacity={0.7}>
-                                <Text style={styles.modalButtonTextCancel}>取消</Text>
-                            </TouchableOpacity>
-                            
-                            <View style={styles.dividerY} />
-                            
-                            <TouchableOpacity style={styles.modalButton} onPress={handleConfirm} activeOpacity={0.7}>
-                                <Text style={styles.modalButtonTextConfirm}>確定</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
         </SafeAreaView>
     );
 }
@@ -353,76 +371,4 @@ const styles = StyleSheet.create({
         height: 24,
         alignSelf: 'center',
     },
-    // --- 彈出層 (iOS 樣式對話框) 的樣式 ---
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        justifyContent: 'flex-start',   // 為了讓 KeyboardAvoidingView 和 paddingTop 控制比例，改為從上往下推
-        alignItems: 'center',
-        paddingTop: Platform.OS === 'ios' ? '70%' : '20%', // 把他推到螢幕上面約 1/3 的位置 (手機畫面邊緣跟鍵盤之間偏上)
-    },
-    modalContent: {
-        width: 270,
-        backgroundColor: '#2A2A2C', // 仿 iOS 深色樣式背景
-        borderRadius: 14,
-        paddingTop: 20,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#FFFFFF',
-        marginBottom: 3,
-    },
-    modalSubtitle: {
-        fontSize: 13,
-        color: '#EBEBF5', // 稍微淡一點的白色
-        marginBottom: 15,
-    },
-    inputContainer: {
-        width: '85%',
-        backgroundColor: '#1C1C1E', // 輸入框深色背景
-        borderWidth: 1,
-        borderColor: '#38383A',
-        borderRadius: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        marginBottom: 20,
-    },
-    modalInput: {
-        fontSize: 15,
-        color: '#FFFFFF',
-        padding: 0,
-        height: 24,
-    },
-    dividerX: {
-        width: '100%',
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: '#4D4D50',
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        width: '100%',
-        height: 46,
-    },
-    modalButton: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    dividerY: {
-        width: StyleSheet.hairlineWidth,
-        height: '100%',
-        backgroundColor: '#4D4D50',
-    },
-    modalButtonTextCancel: {
-        fontSize: 17,
-        color: '#0A84FF', // iOS 藍色連結顏色
-        fontWeight: '400',
-    },
-    modalButtonTextConfirm: {
-        fontSize: 17,
-        color: '#0A84FF', // iOS 藍色連結顏色
-        fontWeight: '600',
-    }
 });

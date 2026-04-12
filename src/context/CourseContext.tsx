@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 // 定義課程資料型別
 interface Course {
@@ -13,6 +13,15 @@ interface CourseContextType {
     selectedCourses: Course[];
     addCourse: (course: Course) => void;
     currentSemester: string;
+    
+    // --- 學分檢核相關 ---
+    passedGeneralCourses: { [key: string]: boolean };
+    generalCreditsTotal: number;
+    updateGeneralCredits: (courses: { [key: string]: boolean }, totalCredits: number) => void;
+
+    passedMustCourses: { [key: string]: boolean };
+    mustCreditsTotal: number;
+    updateMustCredits: (courses: { [key: string]: boolean }, totalCredits: number) => void;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -20,6 +29,13 @@ const CourseContext = createContext<CourseContextType | undefined>(undefined);
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
     const [currentSemester, setCurrentSemester] = useState("114-2"); // 預設學期
+    
+    // --- 學分檢核狀態 ---
+    const [passedGeneralCourses, setPassedGeneralCourses] = useState<{ [key: string]: boolean }>({});
+    const [generalCreditsTotal, setGeneralCreditsTotal] = useState(0);
+
+    const [passedMustCourses, setPassedMustCourses] = useState<{ [key: string]: boolean }>({});
+    const [mustCreditsTotal, setMustCreditsTotal] = useState(0);
 
     const addCourse = (course: Course) => {
         // 檢查是否已經選過（避免重複加入同一門課，但允許衝堂）
@@ -27,9 +43,29 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setSelectedCourses([...selectedCourses, course]);
         }
     };
+    
+    const updateGeneralCredits = (courses: { [key: string]: boolean }, totalCredits: number) => {
+        setPassedGeneralCourses(courses);
+        setGeneralCreditsTotal(totalCredits);
+    };
+
+    const updateMustCredits = (courses: { [key: string]: boolean }, totalCredits: number) => {
+        setPassedMustCourses(courses);
+        setMustCreditsTotal(totalCredits);
+    };
 
     return (
-        <CourseContext.Provider value={{ selectedCourses, addCourse, currentSemester }}>
+        <CourseContext.Provider value={{ 
+            selectedCourses, 
+            addCourse, 
+            currentSemester,
+            passedGeneralCourses,
+            generalCreditsTotal,
+            updateGeneralCredits,
+            passedMustCourses,
+            mustCreditsTotal,
+            updateMustCredits
+        }}>
             {children}
         </CourseContext.Provider>
     );

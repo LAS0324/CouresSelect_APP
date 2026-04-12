@@ -10,7 +10,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // 💡 取得指令傳入的參數 (例如: node import-data.js 114-1)
-const targetSemester = process.argv[2];
+const targetSemester = process.argv[2] || 'MustCourse';
 
 if (!targetSemester) {
     console.error("❌ 錯誤：請提供目標學期名稱！");
@@ -34,6 +34,9 @@ if (!fs.existsSync(fileName)) {
 console.log(`📖 正在讀取檔案：${fileName}...`);
 const rawContent = fs.readFileSync(fileName, 'utf8');
 const rawData = JSON.parse(rawContent.replace(/^\uFEFF/, ''));
+
+// 指令可以帶學期參數，例如: node import-data.js 115-1
+
 
 /**
  * 3. 時間轉換機：把 "四(05,06,07)" 轉成 ["4-05", "4-06", "4-07"]
