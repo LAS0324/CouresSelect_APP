@@ -131,7 +131,7 @@ const SetupScreen: React.FC<SetupProps> = ({ onFinish }) => {
                             
                             <TextInput 
                                 style={styles.textInput}
-                                placeholder="真實姓名 (不超過8個字)"
+                                placeholder="名稱 (不超過8個字)"
                                 placeholderTextColor="#AAA"
                                 value={name}
                                 onChangeText={setName}

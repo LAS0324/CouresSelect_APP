@@ -115,7 +115,7 @@ export default function EditProfile({ navigation }: any) {
                                 style={styles.settingInput}
                                 value={name}
                                 onChangeText={setName}
-                                placeholder="請輸入姓名"
+                                placeholder="請輸入名稱"
                                 placeholderTextColor="#999"
                                 selectionColor={COLORS.primary}
                             />
