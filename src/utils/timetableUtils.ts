@@ -1,3 +1,4 @@
+
 const PERIOD_ORDER = ['0M', '01', '02', '03', '04', '0N', '05', '06', '07', '08', '0E', '09', '10', '11', '12'];
 
 const getPeriodIdx = (pId: string) => {
