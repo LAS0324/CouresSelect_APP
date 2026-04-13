@@ -25,28 +25,33 @@ interface Props {
 }
 
 const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
-    const [academy, setAcademy] = useState<keyof typeof DEPARTMENTS | null>(null);
-    const [dept, setDept] = useState<string | null>(null);
-    const [classGroup, setClassGroup] = useState<string | null>(null);
-    const [day, setDay] = useState<string | null>(null);
+    const [academy, setAcademy] = useState<string | null>("(不限)");
+    const [dept, setDept] = useState<string | null>("(不限)");
+    const [classGroup, setClassGroup] = useState<string | null>("(不限)");
+    const [day, setDay] = useState<string | null>("(不限)");
     const [startSlot, setStartSlot] = useState<string | null>(null);
     const [endSlot, setEndSlot] = useState<string | null>(null);
 
-    // 💡 動態系所選項：選了學院就縮小範圍，沒選就顯示全部
+    // 💡 補上 (不限) 的學院清單
+    const academyOptions = useMemo(() => [
+        { label: '(不限)', value: '(不限)' },
+        ...ACADEMIES
+    ], []);
+
+    // 💡 補上 (不限) 的系所清單
     const departmentOptions = useMemo(() => {
-        if (academy) {
-            return DEPARTMENTS[academy] || [];
-        }
-        // 攤平所有學院的系所
-        const allDepts = Object.values(DEPARTMENTS).flat();
-        return allDepts;
+        const baseDepts = academy && academy !== "(不限)"
+            ? DEPARTMENTS[academy as keyof typeof DEPARTMENTS] || []
+            : Object.values(DEPARTMENTS).flat();
+
+        return [{ label: '(不限)', value: '(不限)' }, ...baseDepts];
     }, [academy]);
 
-    // 💡 動態班級清單
+    // 💡 補上 (不限) 的班級清單
     const classOptions = useMemo(() => {
-        if (!dept) return [];
+        if (!dept || dept === "(不限)") return [{ label: '(不限)', value: '(不限)' }];
 
-        let classes: { label: string; value: string }[] = [];
+        let classes: { label: string; value: string }[] = [{ label: '(不限)', value: '(不限)' }];
         const years = ['一', '二', '三', '四'];
 
         years.forEach(year => {
@@ -69,10 +74,10 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
     });
 
     const handleReset = () => {
-        setAcademy(null);
-        setDept(null);
-        setClassGroup(null);
-        setDay(null);
+        setAcademy("(不限)");
+        setDept("(不限)");
+        setClassGroup("(不限)");
+        setDay("(不限)");
         setStartSlot(null);
         setEndSlot(null);
     };
@@ -93,38 +98,38 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                     <Text style={styles.label}>學院</Text>
                     <Dropdown
                         style={styles.dropdown}
-                        data={ACADEMIES}
+                        data={academyOptions}
                         labelField="label"
                         valueField="value"
-                        placeholder="請選擇學院 (選填)"
+                        placeholder="請選擇學院"
                         value={academy}
                         onChange={item => {
                             setAcademy(item.value);
-                            // 這裡不強制清空系所，增加自由度
+                            setDept("(不限)");
                         }}
                     />
 
                     <Text style={styles.label}>系所</Text>
                     <Dropdown
-                        style={styles.dropdown} // 💡 移除 disable 與 disabled 樣式
+                        style={styles.dropdown}
                         data={departmentOptions}
                         labelField="label"
                         valueField="value"
-                        placeholder="請選擇系所 (選填)"
+                        placeholder="請選擇系所"
                         value={dept}
                         onChange={item => {
                             setDept(item.value);
-                            setClassGroup(null);
+                            setClassGroup("(不限)");
                         }}
                     />
 
                     <Text style={styles.label}>班級</Text>
                     <Dropdown
-                        style={styles.dropdown} // 💡 移除 disable
+                        style={styles.dropdown}
                         data={classOptions}
                         labelField="label"
                         valueField="value"
-                        placeholder="請選擇班級 (選填)"
+                        placeholder="請選擇班級"
                         value={classGroup}
                         onChange={item => setClassGroup(item.value)}
                     />
@@ -134,12 +139,13 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                         style={styles.dropdown}
                         maxHeight={200}
                         data={[
+                            { label: '(不限)', value: '(不限)' },
                             { label: '星期一', value: '1' }, { label: '星期二', value: '2' },
                             { label: '星期三', value: '3' }, { label: '星期四', value: '4' }, { label: '星期五', value: '5' }
                         ]}
                         labelField="label"
                         valueField="value"
-                        placeholder="請選擇 (選填)"
+                        placeholder="請選擇"
                         value={day}
                         onChange={item => setDay(item.value)}
                     />
@@ -165,12 +171,12 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                         style={styles.searchButton}
                         onPress={() => {
                             onSearch({
-                                academy: academy as string | null,
-                                dept: dept as string | null,
-                                classGroup: classGroup as string | null,
-                                day: day as string | null,
-                                startSlot: startSlot as string | null,
-                                endSlot: endSlot as string | null
+                                academy: academy === "(不限)" ? null : academy,
+                                dept: dept === "(不限)" ? null : dept,
+                                classGroup: classGroup === "(不限)" ? null : classGroup,
+                                day: day === "(不限)" ? null : day,
+                                startSlot,
+                                endSlot
                             });
                             onClose();
                         }}
@@ -184,7 +190,6 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
     );
 };
 
-// ... Styles 部分與原本相同，略 ...
 const styles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     modalContent: {

@@ -61,7 +61,9 @@ const CourseSelectionScreen = () => {
 
                 const courseList = coursesData.map((course: any, index: number) => ({
                     ...course,
-                    id: course.courseId ? course.courseId.toString() : index.toString(),
+                    // 💡 不要只用 courseId，因為有些通識課的 courseId 可能是空的或重複的
+                    // 用 "類別-序號" 這種絕對不會重複的組合
+                    id: `course-${index}-${course.courseId || 'no-id'}`,
                     timeSlots: course.timeSlots || parseTimeToSlots(course.time)
                 }));
                 // 如果需要根據 currentSemester 切換不同的檔案，可在此處處理
@@ -87,39 +89,85 @@ const CourseSelectionScreen = () => {
     };
 
     const filteredCourses = useMemo(() => {
+        // 💡 1. 建立去重 Map
+        const uniqueMap = new Map();
+
         const result = courses.filter((course: any) => {
+            // --- 基本搜尋文字過濾 ---
             const searchLower = searchText.toLowerCase();
-            const matchSearch = (course.title || "").toLowerCase().includes(searchLower) ||
+            const matchSearch = !searchText ||
+                (course.title || "").toLowerCase().includes(searchLower) ||
                 (course.teacher || "").toLowerCase().includes(searchLower);
 
             if (!matchSearch) return false;
 
+            // --- 進階查詢邏輯 ---
             if (currentFilters) {
                 const { dept, classGroup, day, startSlot, endSlot } = currentFilters;
-                const dbClassName = course.className || "";
-                const matchDept = dept ? dbClassName.includes(dept) : true;
-                const isGeneral = dbClassName.includes("全校") || dbClassName.includes("大學部") || dbClassName.includes("通識");
-                const matchClass = classGroup ? (dbClassName.includes(classGroup) || isGeneral) : true;
-                const matchTime = (day && startSlot && endSlot) ?
+                const dbClassName = String(course.className || "");
+
+                // 💡 A. 定義「(不限)」邏輯：只要是 undefined、空字串或標註為 (不限) 都視為不限
+                const isDeptUnlimited = !dept || dept === "(不限)" || dept === "不限";
+                const isClassUnlimited = !classGroup || classGroup === "(不限)" || classGroup === "不限";
+
+                // 解析使用者年級
+                const userGrade = (!isClassUnlimited) ? classGroup.match(/[一二三四]/)?.[0] : null;
+
+                // 💡 B. 班級匹配判斷 (只要包含該系或該班就過)
+                const matchesDept = isDeptUnlimited ? true : dbClassName.includes(dept);
+                const matchesClass = isClassUnlimited ? true : dbClassName.includes(classGroup);
+
+                // 💡 C. 身份感知：全校/通識課程邏輯
+                // 只要包含「通識」、「全校」、「大學部」、「共同」，就屬於潛在可選課程
+                const isGeneral = dbClassName.includes("通識") ||
+                    dbClassName.includes("全校") ||
+                    dbClassName.includes("大學部") ||
+                    dbClassName.includes("共同");
+
+                let canTakeGeneral = false;
+                if (isGeneral) {
+                    if (isClassUnlimited) {
+                        canTakeGeneral = true; // 沒選班級，全看
+                    } else if (userGrade === "一") {
+                        // 大一：排除專門給大二以上的課
+                        canTakeGeneral = !dbClassName.includes("二到四") && !dbClassName.includes("大二");
+                    } else {
+                        // 大二以上：排除專門給大一的課
+                        canTakeGeneral = !dbClassName.includes("大一通識");
+                    }
+                }
+
+                // 💡 D. 最終判定：(系所符合 且 班級符合) OR (符合身份的通識/共同課)
+                const classPass = (isDeptUnlimited && isClassUnlimited)
+                    ? true
+                    : ((matchesDept && matchesClass) || canTakeGeneral);
+
+                // 💡 E. 時間區間判斷
+                const isTimeUnlimited = !day || day === "(不限)" || !startSlot || !endSlot;
+                const matchTime = isTimeUnlimited ? true :
                     (course.timeSlots || []).some((slot: string) => {
                         const [d, s] = slot.split('-');
-                        return d === day && s >= startSlot && s <= endSlot;
-                    }) : true;
+                        const currentSlotIdx = parseInt(s, 10) || 0;
+                        const startIdx = parseInt(startSlot, 10);
+                        const endIdx = parseInt(endSlot, 10);
+                        return d === day && currentSlotIdx >= startIdx && currentSlotIdx <= endIdx;
+                    });
 
-                return matchDept && matchClass && matchTime;
+                return classPass && matchTime;
             }
             return true;
         });
 
-        return result.sort((a, b) => {
-            const getWeight = (c: any) => {
-                if (c.electiveType === "必修" && c.requirementType === "專門課程") return 1;
-                if (c.electiveType === "選修" && c.requirementType === "專門課程") return 2;
-                if (c.electiveType === "必修" && c.requirementType === "校共同課程") return 3;
-                if (c.electiveType === "選修" && c.requirementType === "通識課程") return 4;
-                return 5;
-            };
-            return getWeight(a) - getWeight(b);
+        // 💡 2. 徹底去重
+        result.forEach(c => {
+            if (!uniqueMap.has(c.id)) uniqueMap.set(c.id, c);
+        });
+
+        return Array.from(uniqueMap.values()).sort((a, b) => {
+            // 必修排前面
+            if (a.electiveType === "必修" && b.electiveType !== "必修") return -1;
+            if (a.electiveType !== "必修" && b.electiveType === "必修") return 1;
+            return 0;
         });
     }, [courses, searchText, currentFilters]);
 
@@ -132,11 +180,12 @@ const CourseSelectionScreen = () => {
                     <Text style={styles.tagText}>{course.electiveType || course.type || '必修'}</Text>
                 </View>
 
-                {/* 2. 學分 Tag - 在這裡手動加上「學分」二字 */}
                 <View style={[styles.tag, { backgroundColor: '#FFCCBC' }]}>
                     <Text style={styles.tagText}>
-                        {/* 💡 這裡加上字串模板，讓數字後面跟著「學分」 */}
-                        {course.credits ? `${course.credits} 學分` : '0 學分'}
+                        {/* 💡 先將原始資料轉為字串並移除原本就有的「學分」二字，再統一補上 */}
+                        {course.credits
+                            ? `${String(course.credits).replace('學分', '').trim()} 學分`
+                            : '0 學分'}
                     </Text>
                 </View>
 
