@@ -116,28 +116,19 @@ const TimetableScreen = () => {
 
                                                     {selectedCourses.map((course) => {
                                                         const layout = calculateCourseLayout(course, selectedCourses, tempHeight);
-                                                        const isClashed = layout.widthPercent < 100;
                                                         
-                                                        // 判斷格子目前的實際絕對寬度與高度，決定是否「足夠寬敞」能顯示所有資訊
+                                                        // 判斷格子目前的實際絕對寬度與高度
                                                         const cellActualWidth = tempWidth * (layout.widthPercent / 100);
                                                         const cellActualHeight = layout.height;
-                                                        const isSpacious = cellActualWidth > 45 && cellActualHeight > 60; // 寬度大於 45 且高度足夠時判定為寬敞
+                                                        
+                                                        // 寬度大於 45 且高度足夠時判定為「寬敞」
+                                                        const isSpacious = cellActualWidth > 45 && cellActualHeight > 60; 
                                                         
                                                         // 字體大小隨放大比例增加
                                                         const fontSize = tempHeight < 65 ? 8 : (tempHeight < 100 ? 10 : 12);
 
-                                                        // 👉 依照當前的各自高度動態計算可以顯示的行數或字數
-                                                        // 直向（衝堂時）：每字大約佔字體大小+2，預留上下間距約 15
-                                                        const maxVerticalChars = Math.max(1, Math.floor((cellActualHeight - 20) / (fontSize + 2)));
-                                                        // 橫向（平時）：每行大約佔字體大小+4，預留間距 10
+                                                        // 計算當前高度可容納的行數 (每行大約佔字體大小 + 4)
                                                         const maxLines = Math.max(1, Math.floor((cellActualHeight - 10) / (fontSize + 4)));
-
-                                                        const courseNameArray = Array.from(course.name);
-                                                        // 如果衝堂且還不夠寬敞，只取目前高度塞得下的字數
-                                                        const displayArray = (isClashed && !isSpacious) ? courseNameArray.slice(0, maxVerticalChars) : courseNameArray;
-
-                                                        // 若夠寬敞，直接呈現與一般課程一樣的「水平排版」並嘗試顯示完整資訊（移除過度的裁切）
-                                                        const forceNormalLayout = isSpacious;
 
                                                         return (
                                                             <TouchableOpacity
@@ -149,40 +140,39 @@ const TimetableScreen = () => {
                                                                     {
                                                                         top: layout.top,
                                                                         height: layout.height,
-                                                                        // 💡 更新為依據 tempWidth 計算的絕對寬度與位置
-                                                                        width: tempWidth * (layout.widthPercent / 100),
+                                                                        width: cellActualWidth,
                                                                         left: (layout.day * tempWidth) + (tempWidth * (layout.leftOffsetPercent / 100)),
-                                                                        // 💡 無論是否衝堂，皆垂直置中與水平置中
                                                                         justifyContent: 'center',
                                                                         alignItems: 'center',
-                                                                        zIndex: isDeleteMode ? 100 : 1 // 💡 確保有紅叉叉時在最上層
+                                                                        zIndex: isDeleteMode ? 100 : 1,
+                                                                        paddingHorizontal: 4, // 💡 增加左右內邊距，防止橫向文字貼邊
                                                                     }
                                                                 ]}
                                                             >
                                                                 <View style={styles.courseTextContainer}>
-                                                                    {(isClashed && !forceNormalLayout) ? (
+                                                                    {/* 💡 統一使用橫向排版 */}
+                                                                    <Text 
+                                                                        style={[styles.unifiedText, { fontSize }]} 
+                                                                        numberOfLines={isSpacious ? undefined : maxLines}
+                                                                    >
+                                                                        {course.name}
+                                                                    </Text>
+                                                                    
+                                                                    {/* 只有在空間足夠時才顯示地點與老師 */}
+                                                                    {isSpacious && (
                                                                         <>
-                                                                            {displayArray.map((char, index) => {
-                                                                                const vMap: Record<string, string> = { '(': '︵', ')': '︶', '（': '︵', '）': '︶', '[': '︻', ']': '︼', '【': '︻', '】': '︼' };
-                                                                                const verticalChar = vMap[char] || char;
-                                                                                return (
-                                                                                    <Text key={index} style={[styles.unifiedText, { fontSize }]} numberOfLines={1}>{verticalChar}</Text>
-                                                                                );
-                                                                            })}
-                                                                            {courseNameArray.length > maxVerticalChars && (
-                                                                                <Text style={[styles.unifiedText, { fontSize, marginTop: -2 }]} numberOfLines={1}>...</Text>
-                                                                            )}
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            {/* 放大格子時，動態依照高度決定橫向排版要顯示的行數 */}
-                                                                            <Text style={[styles.unifiedText, { fontSize }]} numberOfLines={isSpacious ? undefined : maxLines}>{course.name}</Text>
-                                                                            {isSpacious && (
-                                                                                <>
-                                                                                    <Text style={[styles.unifiedText, { fontSize, marginTop: 2 }]} numberOfLines={undefined}>{course.location}</Text>
-                                                                                    <Text style={[styles.unifiedText, { fontSize }]} numberOfLines={undefined}>{course.teacher}</Text>
-                                                                                </>
-                                                                            )}
+                                                                            <Text 
+                                                                                style={[styles.unifiedText, { fontSize, marginTop: 2, fontWeight: 'normal' }]} 
+                                                                                numberOfLines={1}
+                                                                            >
+                                                                                {course.location}
+                                                                            </Text>
+                                                                            <Text 
+                                                                                style={[styles.unifiedText, { fontSize, fontWeight: 'normal' }]} 
+                                                                                numberOfLines={1}
+                                                                            >
+                                                                                {course.teacher}
+                                                                            </Text>
                                                                         </>
                                                                     )}
                                                                 </View>
@@ -231,7 +221,7 @@ const styles = StyleSheet.create({
     switchActive: { backgroundColor: '#D0B589' },
     switchText: { fontSize: 13, fontWeight: 'bold', color: '#D0B589' },
     switchTextActive: { color: '#FFF' },
-    weekWrapper: { flex: 1, backgroundColor: '#D0B589', borderRadius: 20, overflow: 'hidden' }, // 💡 修正背景色
+    weekWrapper: { flex: 1, backgroundColor: '#D0B589', borderRadius: 20, overflow: 'hidden' },
     weekDayHeader: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 8 },
     dayLabelCell: { flex: 1, alignItems: 'center' },
     dayLabelText: { fontWeight: 'bold', color: '#6D5D4B' },
@@ -246,15 +236,15 @@ const styles = StyleSheet.create({
     courseItem: {
         position: 'absolute',
         backgroundColor: '#FFFFFF',
-        borderRadius:16, // 💡 恢復圓角設計
+        borderRadius:16, 
         paddingHorizontal: 2,
         borderWidth: 0.5,
         borderColor: '#E6E1D3',
-        alignItems: 'center', // 💡 確保內部元件水平置中
+        alignItems: 'center', 
     },
     courseTextContainer: {
         width: '100%',
-        alignItems: 'center', // 💡 確保文字元件水平置中
+        alignItems: 'center', 
         justifyContent: 'center',
     },
     unifiedText: {
@@ -271,7 +261,7 @@ const styles = StyleSheet.create({
         borderRadius: 9,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 100 // 💡 確保圖層遠大於所有課堂
+        zIndex: 100 
     },
 });
 
