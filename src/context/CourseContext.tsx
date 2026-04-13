@@ -80,6 +80,12 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const userSnapshot = await getDoc(userDocRef);
                     if (userSnapshot.exists()) {
                         const data = userSnapshot.data();
+                        
+                        // 載入已選課程
+                        if (data.selectedCourses) {
+                            setSelectedCourses(data.selectedCourses);
+                        }
+
                         if (data.creditProgress) {
                             if (data.creditProgress.passedGeneralCourses) setPassedGeneralCourses(data.creditProgress.passedGeneralCourses);
                             if (data.creditProgress.generalCreditsTotal !== undefined) setGeneralCreditsTotal(data.creditProgress.generalCreditsTotal);
@@ -103,10 +109,24 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setPassedMustCourses({}); setMustCreditsTotal(0);
                 setPassedMajorCourses({}); setMajorCreditsTotal(0);
                 setPassedFlexibleCourses({}); setFlexibleCreditsTotal(0);
+                setSelectedCourses([]); // User logged out, clear selected courses
             }
         });
         return () => unsubscribe();
     }, []);
+
+    const saveSelectedCoursesToFirebase = async (courses: Course[]) => {
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            await setDoc(userDocRef, {
+                selectedCourses: courses
+            }, { merge: true });
+        } catch (error) {
+            console.error("Error saving selected courses to Firebase: ", error);
+        }
+    };
 
     const saveToFirebase = async (field: string, courses: any, totalCredits: number) => {
         const user = auth.currentUser;
@@ -131,14 +151,19 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (prev.find(c => c.id === course.id)) {
                 return prev;
             }
-            // 使用 prev 確保抓到的是當前最新籃子裡的課程
-            return [...prev, course];
+            const updated = [...prev, course];
+            saveSelectedCoursesToFirebase(updated);
+            return updated;
         });
     };
 
     // 💡 實作刪除邏輯
     const removeCourse = (courseId: string) => {
-        setSelectedCourses(prev => prev.filter(c => c.id !== courseId));
+        setSelectedCourses(prev => {
+            const updated = prev.filter(c => c.id !== courseId);
+            saveSelectedCoursesToFirebase(updated);
+            return updated;
+        });
     };
 
     const updateGeneralCredits = (courses: { [key: string]: boolean }, totalCredits: number) => {
