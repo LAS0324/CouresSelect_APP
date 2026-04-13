@@ -1,29 +1,17 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'; // 💡 增加 useCallback
-import {
-    ActivityIndicator, Alert, Platform, SafeAreaView,
-    StatusBar, StyleSheet, Text, TextInput,
-    TouchableOpacity, View, FlatList // 💡 引入 FlatList
-} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { initializeApp, getApps } from 'firebase/app';
-// 💡 改用 getDocs 提升一次性讀取速度
-import { getFirestore, collection, getDocs, query, limit } from 'firebase/firestore';
+import React, { useCallback, useEffect, useMemo, useState } from 'react'; // 💡 增加 useCallback
+import {
+    ActivityIndicator, Alert,
+    FlatList // 💡 引入 FlatList
+    ,
+    Platform, SafeAreaView,
+    StatusBar, StyleSheet, Text, TextInput,
+    TouchableOpacity, View
+} from 'react-native';
+import coursesData from '../../courses/courses.json';
+import AdvancedSearchModal from '../components/AdvancedSearchModal';
 import { useCourse } from '../context/CourseContext';
 import TopNavBar from '../navigation/TopNavBar';
-import AdvancedSearchModal from '../components/AdvancedSearchModal';
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
-    authDomain: "courseapp-788ad.firebaseapp.com",
-    projectId: "courseapp-788ad",
-    storageBucket: "courseapp-788ad.firebasestorage.app",
-    messagingSenderId: "650322013005",
-    appId: "1:650322013005:web:5855bdc8aa1c0dc70be504",
-    measurementId: "G-L6FBFFW8PM"
-};
-
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
 
 const BUILDING_MAP: { [key: string]: string } = {
     'A': '行政大樓', 'B': '科學館', 'C': '明德樓', 'D': '芳蘭樓',
@@ -49,23 +37,38 @@ const CourseSelectionScreen = () => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [currentFilters, setCurrentFilters] = useState<any>(null);
 
-    // 💡 1. 改用 getDocs 進行一次性高速抓取
+    // 💡 1. 讀取本地 JSON 資料
     useEffect(() => {
         const fetchCourses = async () => {
             setLoading(true);
             try {
-                const courseCollection = collection(db, 'Semesters', currentSemester, 'Courses');
-                // 調到 1000 筆通常足以涵蓋大部分系所需求，且不會過慢
-                const q = query(courseCollection, limit(1000));
-                const querySnapshot = await getDocs(q);
+                const parseTimeToSlots = (timeStr: string) => {
+                    if (!timeStr) return [];
+                    const dayMap: { [key: string]: string } = {
+                        '一': '1', '二': '2', '三': '3', '四': '4', '五': '5', '六': '6', '日': '7'
+                    };
+                    const slots: string[] = [];
+                    const regex = /([一二三四五六日])\(([^)]+)\)/g;
+                    let match;
+                    while ((match = regex.exec(timeStr)) !== null) {
+                        const dayNum = dayMap[match[1]];
+                        if (dayNum) {
+                            match[2].split(',').forEach(p => slots.push(`${dayNum}-${p.trim()}`));
+                        }
+                    }
+                    return slots;
+                };
 
-                const courseList: any[] = [];
-                querySnapshot.forEach((doc) => {
-                    courseList.push({ ...doc.data(), id: doc.id });
-                });
+                const courseList = coursesData.map((course: any, index: number) => ({
+                    ...course,
+                    id: course.courseId ? course.courseId.toString() : index.toString(),
+                    timeSlots: course.timeSlots || parseTimeToSlots(course.time)
+                }));
+                // 如果需要根據 currentSemester 切換不同的檔案，可在此處處理
+
                 setCourses(courseList);
             } catch (error) {
-                console.error("Firebase 讀取錯誤: ", error);
+                console.error("讀取本地資料錯誤: ", error);
             }
             setLoading(false);
         };
@@ -74,11 +77,11 @@ const CourseSelectionScreen = () => {
 
     const handleAddCourse = (course: any) => {
         addCourse({
-            id: course.id,
-            name: course.title,
-            teacher: course.teacher,
-            timeSlots: course.timeSlots,
-            location: formatLocation(course.location),
+            id: course.id || '',
+            name: course.title || '',
+            teacher: course.teacher || '',
+            timeSlots: course.timeSlots || [],
+            location: formatLocation(course.location) || '未定',
         });
         Alert.alert('加入成功', `已將「${course.title}」匯入待選清單！`);
     };
@@ -238,7 +241,7 @@ const CourseSelectionScreen = () => {
                 {loading && (
                     <View style={styles.loadingOverlay}>
                         <ActivityIndicator size="large" color="#7B886F" />
-                        <Text style={{ marginTop: 10, color: '#666' }}>正在從雲端抓取課程...</Text>
+                        <Text style={{ marginTop: 10, color: '#666' }}>正在讀取課程資料...</Text>
                     </View>
                 )}
             </View>

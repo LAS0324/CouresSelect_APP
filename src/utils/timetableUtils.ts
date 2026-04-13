@@ -7,6 +7,9 @@ const getPeriodIdx = (pId: string) => {
 };
 
 export const calculateCourseLayout = (course: any, allCourses: any[], cellHeight: number) => {
+    if (!course.timeSlots || course.timeSlots.length === 0) {
+        return { height: 0, top: 0, widthPercent: 100, leftOffsetPercent: 0, day: 0 };
+    }
     const periodIndices = course.timeSlots.map((s: string) => getPeriodIdx(s.split('-')[1]));
     const day = parseInt(course.timeSlots[0].split('-')[0]);
 

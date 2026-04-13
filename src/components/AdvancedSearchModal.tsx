@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useState } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView,
-    TouchableOpacity, Modal, Platform
+    Modal, Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
-import { Ionicons } from '@expo/vector-icons';
 import { ACADEMIES, DEPARTMENTS } from '../constants/departments';
 
 interface Props {
@@ -28,25 +32,19 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
     const [startSlot, setStartSlot] = useState<string | null>(null);
     const [endSlot, setEndSlot] = useState<string | null>(null);
 
-    // 💡 工具函式：在選項最前面插入「-」
-    const withDefault = (data: { label: string; value: any }[]) => [
-        { label: '-', value: null },
-        ...data
-    ];
-
     // 💡 動態系所選項：選了學院就縮小範圍，沒選就顯示全部
     const departmentOptions = useMemo(() => {
         if (academy) {
-            return withDefault(DEPARTMENTS[academy] || []);
+            return DEPARTMENTS[academy] || [];
         }
         // 攤平所有學院的系所
         const allDepts = Object.values(DEPARTMENTS).flat();
-        return withDefault(allDepts);
+        return allDepts;
     }, [academy]);
 
     // 💡 動態班級清單
     const classOptions = useMemo(() => {
-        if (!dept) return [{ label: '-', value: null }];
+        if (!dept) return [];
 
         let classes: { label: string; value: string }[] = [];
         const years = ['一', '二', '三', '四'];
@@ -62,7 +60,7 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                 classes.push({ label: `${dept}${year}甲`, value: `${dept}${year}甲` });
             }
         });
-        return withDefault(classes);
+        return classes;
     }, [dept]);
 
     const slots = Array.from({ length: 14 }, (_, i) => {
@@ -80,7 +78,7 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+        <Modal visible={visible} animationType="none" transparent={true} onRequestClose={onClose}>
             <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
 
             <View style={styles.modalContent}>
@@ -91,11 +89,11 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                     <Text style={styles.label}>學院</Text>
                     <Dropdown
                         style={styles.dropdown}
-                        data={withDefault(ACADEMIES)}
+                        data={ACADEMIES}
                         labelField="label"
                         valueField="value"
                         placeholder="請選擇學院 (選填)"
@@ -134,12 +132,14 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                     <Text style={styles.label}>上課時間 (星期)</Text>
                     <Dropdown
                         style={styles.dropdown}
-                        data={withDefault([
+                        maxHeight={200}
+                        data={[
                             { label: '星期一', value: '1' }, { label: '星期二', value: '2' },
                             { label: '星期三', value: '3' }, { label: '星期四', value: '4' }, { label: '星期五', value: '5' }
-                        ])}
+                        ]}
                         labelField="label"
                         valueField="value"
+                        placeholder="請選擇 (選填)"
                         value={day}
                         onChange={item => setDay(item.value)}
                     />
@@ -147,12 +147,12 @@ const AdvancedSearchModal = ({ visible, onClose, onSearch }: Props) => {
                     <View style={styles.slotRange}>
                         <View style={{ width: '45%' }}>
                             <Text style={styles.label}>開始節次</Text>
-                            <Dropdown style={styles.dropdown} data={withDefault(slots)} labelField="label" valueField="value" value={startSlot} onChange={item => setStartSlot(item.value)} />
+                            <Dropdown style={styles.dropdown} maxHeight={200} data={slots} labelField="label" valueField="value" placeholder="請選擇" value={startSlot} onChange={item => setStartSlot(item.value)} />
                         </View>
                         <Text style={styles.slotSeparator}>至</Text>
                         <View style={{ width: '45%' }}>
                             <Text style={styles.label}>結束節次</Text>
-                            <Dropdown style={styles.dropdown} data={withDefault(slots)} labelField="label" valueField="value" value={endSlot} onChange={item => setEndSlot(item.value)} />
+                            <Dropdown style={styles.dropdown} maxHeight={200} data={slots} labelField="label" valueField="value" placeholder="請選擇" value={endSlot} onChange={item => setEndSlot(item.value)} />
                         </View>
                     </View>
                 </ScrollView>
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     },
     slotRange: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     slotSeparator: { fontSize: 16, color: '#666', marginTop: 25 },
-    footerBtnGroup: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+    footerBtnGroup: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingBottom: Platform.OS === 'ios' ? 30 : 20 },
     resetButton: { flex: 1, height: 50, justifyContent: 'center', alignItems: 'center' },
     resetBtnText: { fontSize: 16, color: '#666' },
     searchButton: {

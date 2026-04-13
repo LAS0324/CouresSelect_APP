@@ -233,7 +233,7 @@ const TimetableScreen = () => {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FAF7ED' },
-    container: { flex: 1, paddingHorizontal: 15 },
+    container: { flex: 1, paddingHorizontal: 15, paddingBottom: 15 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 15 },
     subTitle: { fontSize: 20, fontWeight: 'bold', color: '#6D5D4B' },
     customSwitch: { flexDirection: 'row', backgroundColor: '#E6E1D3', borderRadius: 20, padding: 3, width: 120 },
