@@ -14,7 +14,7 @@ import { useCourse } from '../context/CourseContext';
 import TopNavBar from '../navigation/TopNavBar';
 import { calculateCourseLayout } from '../utils/timetableUtils';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = 45;
 const HEADER_HEIGHT = 40;
 const SEMESTER_START_DATE = new Date('2026-02-23');
@@ -27,8 +27,11 @@ const AnimatedDayCell = ({ label, width }: { label: string, width: SharedValue<n
     return <Animated.View style={[styles.dayLabelCell, style]}><Text style={styles.dayLabelText}>{label}</Text></Animated.View>;
 };
 
-const AnimatedTimeCell = ({ period, height }: { period: any, height: SharedValue<number> }) => {
-    const style = useAnimatedStyle(() => ({ height: height.value }));
+const AnimatedTimeCell = ({ period, height, isLast }: { period: any, height: SharedValue<number>, isLast: boolean }) => {
+    const style = useAnimatedStyle(() => ({
+        height: height.value,
+        borderBottomWidth: isLast ? 0 : 0.3,
+    }));
     return (
         <Animated.View style={[styles.timeSideCell, style]}>
             <Text style={styles.timeSideId}>{String(period.id)}</Text>
@@ -44,15 +47,17 @@ const HLine = ({ index, h, w }: { index: number, h: SharedValue<number>, w: Shar
     return <Animated.View style={[styles.gridLineH, style]} />;
 };
 
-const VLine = ({ index, w, totalH }: { index: number, w: SharedValue<number>, totalH: number }) => {
-    const style = useAnimatedStyle(() => ({ left: index * w.value, height: totalH }));
+const VLine = ({ index, w, h, periodsCount }: { index: number, w: SharedValue<number>, h: SharedValue<number>, periodsCount: number }) => {
+    const style = useAnimatedStyle(() => ({
+        left: index * w.value,
+        height: periodsCount * h.value
+    }));
     return <Animated.View style={[styles.gridLineV, style]} />;
 };
 
 const CoursePill = ({ course, allCourses, tempWidth, tempHeight, isDeleteMode, removeCourse, onLongPress }: any) => {
     const layout = calculateCourseLayout(course, allCourses, 1);
 
-    // 1. 課程長條位置與尺寸
     const animatedStyle = useAnimatedStyle(() => {
         const w = tempWidth.value;
         const h = tempHeight.value;
@@ -64,91 +69,60 @@ const CoursePill = ({ course, allCourses, tempWidth, tempHeight, isDeleteMode, r
         };
     });
 
-    // 2. 動態文字大小
     const textAnimatedStyle = useAnimatedStyle(() => {
         const dynamicSize = clamp(8.5 + (tempHeight.value - 45) * 0.04, 8.5, 12.5);
-        return {
-            fontSize: dynamicSize,
-            lineHeight: dynamicSize + 3
-        };
+        return { fontSize: dynamicSize, lineHeight: dynamicSize + 3 };
     });
 
-    // 💡 3. 細節顯示門檻：高度超過 75 且寬度足夠時才淡入
-    const detailAnimatedStyle = useAnimatedStyle(() => {
-        const isVisible = tempHeight.value > 85; // 門檻設稍微高一點點，讓切換更明確
-        return {
-            display: isVisible ? 'flex' : 'none',
-            opacity: clamp((tempHeight.value - 85) / 15, 0, 1),
-            marginTop: 2,
-        };
-    });
-
-    // 4. 紅色叉叉動態大小 (24 ~ 48px)
-    const badgeAnimatedStyle = useAnimatedStyle(() => {
-        const badgeSize = clamp(24 + (tempHeight.value - 45) * 0.15, 24, 48);
-        return {
-            width: badgeSize,
-            height: badgeSize,
-            borderRadius: badgeSize / 2,
-            top: -(badgeSize / 4),
-            right: -(badgeSize / 4),
-        };
-    });
-
-    const badgeTextAnimatedStyle = useAnimatedStyle(() => ({
-        fontSize: clamp(12 + (tempHeight.value - 45) * 0.1, 12, 24)
+    const detailAnimatedStyle = useAnimatedStyle(() => ({
+        display: tempHeight.value > 100 ? 'flex' : 'none',
+        opacity: clamp((tempHeight.value - 100) / 20, 0, 1),
     }));
 
     const isClashed = layout.widthPercent < 100;
 
     return (
         <Animated.View style={[styles.courseItem, animatedStyle]}>
-            <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} style={styles.courseTouch}>
-                <View style={styles.courseTextContainer}>
-                    {/* 💡 衝堂時無論縮放程度，課名永遠 numberOfLines={0} 確保完全顯示 */}
-                    <Animated.Text
-                        style={[styles.unifiedText, textAnimatedStyle]}
-                        numberOfLines={0}
-                    >
-                        {String(course.name)}
-                    </Animated.Text>
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onLongPress={onLongPress}
+                style={styles.courseTouch}
+            >
+                <View style={styles.textWrapper}>
+                    <View style={styles.courseTextContainer}>
+                        {/* 課堂名稱：衝堂時不限行數顯示，非衝堂限制2行 */}
+                        <Animated.Text
+                            style={[styles.unifiedText, textAnimatedStyle]}
+                            numberOfLines={isClashed ? 0 : 2}
+                        >
+                            {String(course.name)}
+                        </Animated.Text>
 
-                    {/* 衝堂時：動態細節 */}
-                    {isClashed && (
-                        <Animated.View style={[styles.detailContainer, detailAnimatedStyle]}>
-                            <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={0}>
-                                {String(course.location)}
-                            </Animated.Text>
-                            <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={0}>
-                                {String(course.teacher)}
-                            </Animated.Text>
-                        </Animated.View>
-                    )}
-
-                    {/* 非衝堂：直接顯示細節（因為空間夠） */}
-                    {!isClashed && (
-                        <View style={styles.detailContainer}>
-                            <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={0}>
-                                {String(course.location)}
-                            </Animated.Text>
-                            <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={0}>
-                                {String(course.teacher)}
-                            </Animated.Text>
-                        </View>
-                    )}
+                        {isClashed ? (
+                            /* 💡 衝堂：放大後才顯示地點/老師 */
+                            <Animated.View style={[styles.detailContainer, detailAnimatedStyle]}>
+                                <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.location)}</Animated.Text>
+                                <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.teacher)}</Animated.Text>
+                            </Animated.View>
+                        ) : (
+                            /* 💡 非衝堂：永遠顯示 */
+                            <View style={styles.detailContainer}>
+                                <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.location)}</Animated.Text>
+                                <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.teacher)}</Animated.Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
             </TouchableOpacity>
 
             {isDeleteMode && (
-                <Animated.View style={[styles.deleteBadge, badgeAnimatedStyle]}>
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={styles.fullTouch}
-                        onPress={() => removeCourse(course.id)}
-                    >
-                        <Animated.Text style={[styles.deleteText, badgeTextAnimatedStyle]}>×</Animated.Text>
-                    </TouchableOpacity>
-                </Animated.View>
+                <TouchableOpacity
+                    style={styles.deleteBadge}
+                    onPress={() => removeCourse(course.id)}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.deleteText}>×</Text>
+                </TouchableOpacity>
             )}
         </Animated.View>
     );
@@ -160,6 +134,7 @@ const TimetableScreen = ({ navigation }: any) => {
     const { selectedCourses, removeCourse } = useCourse();
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [currentWeek, setCurrentWeek] = useState(1);
+    const [containerHeight, setContainerHeight] = useState(0);
 
     const tempWidth = useSharedValue(INITIAL_CELL_WIDTH);
     const tempHeight = useSharedValue(60);
@@ -170,16 +145,6 @@ const TimetableScreen = ({ navigation }: any) => {
     const offsetY = useSharedValue(0);
     const startX = useSharedValue(0);
     const startY = useSharedValue(0);
-
-    useEffect(() => {
-        const today = new Date();
-        const start = new Date(SEMESTER_START_DATE);
-        start.setHours(0, 0, 0, 0);
-        const diffInMs = today.getTime() - start.getTime();
-        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-        const week = Math.floor(diffInDays / 7) + 1;
-        setCurrentWeek(week >= 1 && week <= 18 ? week : (week > 18 ? 18 : 1));
-    }, []);
 
     const periods = [
         { id: '0M', start: '07:10', end: '08:00' }, { id: '01', start: '08:10', end: '09:00' },
@@ -193,6 +158,15 @@ const TimetableScreen = ({ navigation }: any) => {
     ];
     const days = [{ label: '一' }, { label: '二' }, { label: '三' }, { label: '四' }, { label: '五' }];
 
+    useEffect(() => {
+        const today = new Date();
+        const start = new Date(SEMESTER_START_DATE);
+        start.setHours(0, 0, 0, 0);
+        const diffInMs = today.getTime() - start.getTime();
+        const week = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7)) + 1;
+        setCurrentWeek(week >= 1 && week <= 18 ? week : (week > 18 ? 18 : 1));
+    }, []);
+
     const panGesture = Gesture.Pan()
         .onStart(() => {
             startX.value = offsetX.value;
@@ -200,7 +174,8 @@ const TimetableScreen = ({ navigation }: any) => {
         })
         .onUpdate((event) => {
             const maxW = tempWidth.value * 5 - (SCREEN_WIDTH - 30 - SIDEBAR_WIDTH);
-            const maxH = periods.length * tempHeight.value - (SCREEN_HEIGHT - 350);
+            const totalContentHeight = periods.length * tempHeight.value;
+            const maxH = totalContentHeight - containerHeight;
             offsetX.value = clamp(startX.value - event.translationX, 0, Math.max(0, maxW));
             offsetY.value = clamp(startY.value - event.translationY, 0, Math.max(0, maxH));
         });
@@ -236,7 +211,6 @@ const TimetableScreen = ({ navigation }: any) => {
                     <View style={styles.header}>
                         <Text style={styles.subTitle}>114下 第{currentWeek}週</Text>
                     </View>
-
                     <View style={styles.weekWrapper}>
                         <View style={styles.headerRowContainer}>
                             <View style={styles.cornerBox} />
@@ -246,26 +220,30 @@ const TimetableScreen = ({ navigation }: any) => {
                                 </Animated.View>
                             </View>
                         </View>
-
                         <View style={styles.mainGridArea}>
                             <View style={{ width: SIDEBAR_WIDTH, overflow: 'hidden' }}>
                                 <Animated.View style={sidebarStyle}>
-                                    {periods.map((p) => <AnimatedTimeCell key={p.id} period={p} height={tempHeight} />)}
+                                    {periods.map((p, i) => (
+                                        <AnimatedTimeCell key={p.id} period={p} height={tempHeight} isLast={i === periods.length - 1} />
+                                    ))}
                                 </Animated.View>
                             </View>
-
                             <GestureDetector gesture={composed}>
-                                <View style={styles.canvasContainer}>
+                                <View
+                                    style={styles.canvasContainer}
+                                    onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+                                >
                                     <Animated.View style={[styles.canvas, canvasStyle]}>
                                         <TouchableOpacity
                                             style={StyleSheet.absoluteFill}
                                             activeOpacity={1}
                                             onPress={() => setIsDeleteMode(false)}
                                         />
-
                                         {periods.map((_, i) => <HLine key={`h-${i}`} index={i} h={tempHeight} w={tempWidth} />)}
-                                        {[0, 1, 2, 3, 4, 5].map((i) => <VLine key={`v-${i}`} index={i} w={tempWidth} totalH={periods.length * 180} />)}
-
+                                        <HLine index={periods.length} h={tempHeight} w={tempWidth} />
+                                        {[0, 1, 2, 3, 4, 5].map((i) => (
+                                            <VLine key={`v-${i}`} index={i} w={tempWidth} h={tempHeight} periodsCount={periods.length} />
+                                        ))}
                                         {selectedCourses.map((course) => (
                                             <CoursePill
                                                 key={course.id}
@@ -275,7 +253,7 @@ const TimetableScreen = ({ navigation }: any) => {
                                                 tempHeight={tempHeight}
                                                 isDeleteMode={isDeleteMode}
                                                 removeCourse={removeCourse}
-                                                onLongPress={() => setIsDeleteMode(true)}
+                                                onLongPress={() => tempHeight.value > 100 && setIsDeleteMode(true)}
                                             />
                                         ))}
                                     </Animated.View>
@@ -294,7 +272,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 15 },
     header: { marginVertical: 15 },
     subTitle: { fontSize: 20, fontWeight: 'bold', color: '#6D5D4B' },
-    weekWrapper: { flex: 1, backgroundColor: '#D4C3A3', borderRadius: 20, overflow: 'hidden' },
+    weekWrapper: { flex: 1, backgroundColor: '#D4C3A3', borderRadius: 20, overflow: 'hidden', marginBottom: 15 },
     headerRowContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.2)', height: HEADER_HEIGHT },
     headerRow: { flexDirection: 'row' },
     cornerBox: { width: SIDEBAR_WIDTH, height: HEADER_HEIGHT },
@@ -302,30 +280,20 @@ const styles = StyleSheet.create({
     canvasContainer: { flex: 1, overflow: 'hidden' },
     dayLabelCell: { alignItems: 'center', justifyContent: 'center', height: HEADER_HEIGHT },
     dayLabelText: { fontWeight: 'bold', color: '#6D5D4B' },
-    timeSideCell: { justifyContent: 'center', alignItems: 'center', borderBottomWidth: 0.3, borderColor: 'rgba(255,255,255,0.3)', width: SIDEBAR_WIDTH },
+    timeSideCell: { justifyContent: 'center', alignItems: 'center', borderColor: 'rgba(255,255,255,0.3)', width: SIDEBAR_WIDTH },
     timeSideId: { fontSize: 13, fontWeight: 'bold', color: '#6D5D4B' },
     timeSideTime: { fontSize: 8, color: '#8E7E6A', textAlign: 'center' },
     canvas: { position: 'relative' },
     gridLineH: { position: 'absolute', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
     gridLineV: { position: 'absolute', width: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
     courseItem: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: 8, elevation: 3, borderWidth: 0.5, borderColor: '#E6E1D3', overflow: 'visible' },
-    courseTouch: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 4 },
-    courseTextContainer: { width: '100%', alignItems: 'center' },
-    detailContainer: { width: '100%', alignItems: 'center' },
+    textWrapper: { flex: 1, width: '100%', overflow: 'hidden', borderRadius: 8 },
+    courseTouch: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2, paddingVertical: 4 },
+    courseTextContainer: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }, // 💡 確保容器鋪滿並垂直置中
+    detailContainer: { width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 2 }, // 💡 垂直置中
     unifiedText: { fontWeight: 'bold', color: '#6D5D4B', textAlign: 'center' },
-    deleteBadge: {
-        position: 'absolute',
-        backgroundColor: '#FF6B6B',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 9999,
-        borderWidth: 2,
-        borderColor: '#FFF',
-        elevation: 5,
-        overflow: 'hidden'
-    },
-    fullTouch: { flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' },
-    deleteText: { color: '#FFF', fontWeight: 'bold' }
+    deleteBadge: { position: 'absolute', top: -10, right: -10, backgroundColor: '#FF6B6B', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', zIndex: 9999, elevation: 5, borderWidth: 1.5, borderColor: '#FFF' },
+    deleteText: { color: '#FFF', fontSize: 14, fontWeight: 'bold', lineHeight: 18 }
 });
 
 export default TimetableScreen;
