@@ -1,17 +1,23 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react'; // 💡 增加 useCallback
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator, Alert,
-    FlatList // 💡 引入 FlatList
-    ,
+    ActivityIndicator,
     Platform, SafeAreaView,
     StatusBar, StyleSheet, Text, TextInput,
-    TouchableOpacity, View
+    TouchableOpacity, View,
+    FlatList,
+    LayoutAnimation, // 💡 引入動畫庫
+    UIManager
 } from 'react-native';
 import coursesData from '../../courses/courses.json';
 import AdvancedSearchModal from '../components/AdvancedSearchModal';
 import { useCourse } from '../context/CourseContext';
 import TopNavBar from '../navigation/TopNavBar';
+
+// 啟用 Android 的 LayoutAnimation
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const BUILDING_MAP: { [key: string]: string } = {
     'A': '行政大樓', 'B': '科學館', 'C': '明德樓', 'D': '芳蘭樓',
@@ -33,11 +39,11 @@ const CourseSelectionScreen = () => {
     const [searchText, setSearchText] = useState('');
     const [courses, setCourses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const { addCourse, currentSemester } = useCourse();
+    // 💡 取得 selectedCourses 用於過濾
+    const { addCourse, currentSemester, selectedCourses } = useCourse();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [currentFilters, setCurrentFilters] = useState<any>(null);
 
-    // 💡 1. 讀取本地 JSON 資料
     useEffect(() => {
         const fetchCourses = async () => {
             setLoading(true);
@@ -61,13 +67,9 @@ const CourseSelectionScreen = () => {
 
                 const courseList = coursesData.map((course: any, index: number) => ({
                     ...course,
-                    // 💡 不要只用 courseId，因為有些通識課的 courseId 可能是空的或重複的
-                    // 用 "類別-序號" 這種絕對不會重複的組合
-                    id: `course-${index}-${course.courseId || 'no-id'}`,
+                    id: course.courseId ? course.courseId.toString() : index.toString(),
                     timeSlots: course.timeSlots || parseTimeToSlots(course.time)
                 }));
-                // 如果需要根據 currentSemester 切換不同的檔案，可在此處處理
-
                 setCourses(courseList);
             } catch (error) {
                 console.error("讀取本地資料錯誤: ", error);
@@ -78,6 +80,9 @@ const CourseSelectionScreen = () => {
     }, [currentSemester]);
 
     const handleAddCourse = (course: any) => {
+        // 💡 觸發佈局動畫：下一次 State 更新導致的畫面變動會帶有動畫效果
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
         addCourse({
             id: course.id || '',
             name: course.title || '',
@@ -85,15 +90,17 @@ const CourseSelectionScreen = () => {
             timeSlots: course.timeSlots || [],
             location: formatLocation(course.location) || '未定',
         });
-        Alert.alert('加入成功', `已將「${course.title}」匯入待選清單！`);
+        // 移除 Alert，改用流暢的卡片消失感
     };
 
     const filteredCourses = useMemo(() => {
-        // 💡 1. 建立去重 Map
-        const uniqueMap = new Map();
+        // 💡 1. 先獲取已選課程的 ID 列表 (轉成 Set 提高查詢效能)
+        const selectedIds = new Set(selectedCourses.map(c => String(c.id)));
 
         const result = courses.filter((course: any) => {
-            // --- 基本搜尋文字過濾 ---
+            // 💡 2. 核心邏輯：如果這堂課已經在課表裡，直接過濾掉不顯示
+            if (selectedIds.has(String(course.id))) return false;
+
             const searchLower = searchText.toLowerCase();
             const matchSearch = !searchText ||
                 (course.title || "").toLowerCase().includes(searchLower) ||
@@ -101,48 +108,30 @@ const CourseSelectionScreen = () => {
 
             if (!matchSearch) return false;
 
-            // --- 進階查詢邏輯 ---
             if (currentFilters) {
                 const { dept, classGroup, day, startSlot, endSlot } = currentFilters;
                 const dbClassName = String(course.className || "");
-
-                // 💡 A. 定義「(不限)」邏輯：只要是 undefined、空字串或標註為 (不限) 都視為不限
                 const isDeptUnlimited = !dept || dept === "(不限)" || dept === "不限";
                 const isClassUnlimited = !classGroup || classGroup === "(不限)" || classGroup === "不限";
-
-                // 解析使用者年級
                 const userGrade = (!isClassUnlimited) ? classGroup.match(/[一二三四]/)?.[0] : null;
 
-                // 💡 B. 班級匹配判斷 (只要包含該系或該班就過)
                 const matchesDept = isDeptUnlimited ? true : dbClassName.includes(dept);
                 const matchesClass = isClassUnlimited ? true : dbClassName.includes(classGroup);
-
-                // 💡 C. 身份感知：全校/通識課程邏輯
-                // 只要包含「通識」、「全校」、「大學部」、「共同」，就屬於潛在可選課程
-                const isGeneral = dbClassName.includes("通識") ||
-                    dbClassName.includes("全校") ||
-                    dbClassName.includes("大學部") ||
-                    dbClassName.includes("共同");
+                const isGeneral = dbClassName.includes("通識") || dbClassName.includes("全校") || dbClassName.includes("大學部") || dbClassName.includes("共同");
 
                 let canTakeGeneral = false;
                 if (isGeneral) {
                     if (isClassUnlimited) {
-                        canTakeGeneral = true; // 沒選班級，全看
+                        canTakeGeneral = true;
                     } else if (userGrade === "一") {
-                        // 大一：排除專門給大二以上的課
                         canTakeGeneral = !dbClassName.includes("二到四") && !dbClassName.includes("大二");
                     } else {
-                        // 大二以上：排除專門給大一的課
                         canTakeGeneral = !dbClassName.includes("大一通識");
                     }
                 }
 
-                // 💡 D. 最終判定：(系所符合 且 班級符合) OR (符合身份的通識/共同課)
-                const classPass = (isDeptUnlimited && isClassUnlimited)
-                    ? true
-                    : ((matchesDept && matchesClass) || canTakeGeneral);
+                const classPass = (isDeptUnlimited && isClassUnlimited) ? true : ((matchesDept && matchesClass) || canTakeGeneral);
 
-                // 💡 E. 時間區間判斷
                 const isTimeUnlimited = !day || day === "(不限)" || !startSlot || !endSlot;
                 const matchTime = isTimeUnlimited ? true :
                     (course.timeSlots || []).some((slot: string) => {
@@ -158,43 +147,26 @@ const CourseSelectionScreen = () => {
             return true;
         });
 
-        // 💡 2. 徹底去重
-        result.forEach(c => {
-            if (!uniqueMap.has(c.id)) uniqueMap.set(c.id, c);
-        });
-
-        return Array.from(uniqueMap.values()).sort((a, b) => {
-            // 必修排前面
+        return result.sort((a, b) => {
             if (a.electiveType === "必修" && b.electiveType !== "必修") return -1;
             if (a.electiveType !== "必修" && b.electiveType === "必修") return 1;
             return 0;
         });
-    }, [courses, searchText, currentFilters]);
+    }, [courses, searchText, currentFilters, selectedCourses]); // 💡 監聽 selectedCourses
 
-    // 💡 2. 定義 FlatList 的渲染項目 (優化效能)
     const renderCourseItem = useCallback(({ item: course }: { item: any }) => (
         <View style={styles.courseCard}>
             <View style={styles.tagContainer}>
-                {/* 1. 必選修 */}
                 <View style={[styles.tag, { backgroundColor: '#FFE082' }]}>
                     <Text style={styles.tagText}>{course.electiveType || course.type || '必修'}</Text>
                 </View>
-
                 <View style={[styles.tag, { backgroundColor: '#FFCCBC' }]}>
                     <Text style={styles.tagText}>
-                        {/* 💡 先將原始資料轉為字串並移除原本就有的「學分」二字，再統一補上 */}
-                        {course.credits
-                            ? `${String(course.credits).replace('學分', '').trim()} 學分`
-                            : '0 學分'}
+                        {course.credits ? `${String(course.credits).replace('學分', '').trim()} 學分` : '0 學分'}
                     </Text>
                 </View>
-
-                {/* 3. 課程類別 - 增加容錯，確保抓到資料 */}
                 <View style={[styles.tag, { backgroundColor: '#B3E5FC' }]}>
-                    <Text style={styles.tagText}>
-                        {/* 這裡要確保 Key 跟 Firebase 一模一樣 */}
-                        {course.requirementType || '一般課程'}
-                    </Text>
+                    <Text style={styles.tagText}>{course.requirementType || '一般課程'}</Text>
                 </View>
             </View>
 
@@ -228,13 +200,12 @@ const CourseSelectionScreen = () => {
                 </TouchableOpacity>
             </View>
         </View>
-    ), [courses]); // 當 courses 改變時重新生成
+    ), [selectedCourses]); // 💡 當已選清單變動時重新生成渲染函式
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <TopNavBar title="選課" />
             <View style={styles.container}>
-                {/* 💡 搜尋列與標題 */}
                 <FlatList
                     data={filteredCourses}
                     renderItem={renderCourseItem}
@@ -252,7 +223,6 @@ const CourseSelectionScreen = () => {
                                     />
                                 </View>
                             </View>
-
                             <View style={styles.filterHeader}>
                                 <Text style={styles.filterTitle}>篩選課程</Text>
                                 <TouchableOpacity
@@ -278,13 +248,8 @@ const CourseSelectionScreen = () => {
                         ) : null
                     }
                     ListFooterComponent={<View style={{ height: 20 }} />}
-                    refreshing={loading}
-                    onRefresh={() => {/* 這裡可以放手動刷新的邏輯 */ }}
-                    // 💡 效能關鍵設定
                     initialNumToRender={8}
                     windowSize={5}
-                    removeClippedSubviews={true}
-                    showsVerticalScrollIndicator={false}
                 />
 
                 {loading && (
@@ -299,6 +264,8 @@ const CourseSelectionScreen = () => {
                 visible={isModalVisible}
                 onClose={() => setIsModalVisible(false)}
                 onSearch={(filters) => {
+                    // 💡 搜尋過濾時也可以加上動畫
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                     setCurrentFilters(filters);
                     setIsModalVisible(false);
                 }}
@@ -307,6 +274,7 @@ const CourseSelectionScreen = () => {
     );
 };
 
+// ... Styles 維持不變 ...
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
