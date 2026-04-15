@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import NotificationScreen from '../NotificationScreen';
 import Credit_3 from './Credit_3';
 import CreditDetailFlexible from './CreditDetail_Flexible';
 import CreditDetailGeneral from './CreditDetail_General';
@@ -16,6 +17,7 @@ export default function CreditStackNavigator() {
             <Stack.Screen name="CreditDetailGeneral" component={CreditDetailGeneral} />
             <Stack.Screen name="CreditDetailMajor" component={CreditDetailMajor} />
             <Stack.Screen name="CreditDetailFlexible" component={CreditDetailFlexible} />
+            <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
         </Stack.Navigator>
     );
 }

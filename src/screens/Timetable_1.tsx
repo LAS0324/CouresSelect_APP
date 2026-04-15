@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
+    Dimensions,
     SafeAreaView, StyleSheet, Text, TouchableOpacity,
-    View, Dimensions
+    View
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-    useSharedValue, useAnimatedStyle, SharedValue, clamp
+    SharedValue, clamp,
+    useAnimatedStyle,
+    useSharedValue
 } from 'react-native-reanimated';
 import { useCourse } from '../context/CourseContext';
 import TopNavBar from '../navigation/TopNavBar';
@@ -153,7 +156,7 @@ const CoursePill = ({ course, allCourses, tempWidth, tempHeight, isDeleteMode, r
 
 // --- 主組件 ---
 
-const TimetableScreen = () => {
+const TimetableScreen = ({ navigation }: any) => {
     const { selectedCourses, removeCourse } = useCourse();
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [currentWeek, setCurrentWeek] = useState(1);
@@ -225,7 +228,10 @@ const TimetableScreen = () => {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaView style={styles.safeArea}>
-                <TopNavBar title="課表" />
+                <TopNavBar 
+                    title="課表" 
+                    onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+                />
                 <View style={styles.container}>
                     <View style={styles.header}>
                         <Text style={styles.subTitle}>114下 第{currentWeek}週</Text>

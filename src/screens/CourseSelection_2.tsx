@@ -4,6 +4,7 @@ import {
     ActivityIndicator, Alert,
     FlatList // 💡 引入 FlatList
     ,
+
     Platform, SafeAreaView,
     StatusBar, StyleSheet, Text, TextInput,
     TouchableOpacity, View
@@ -29,7 +30,7 @@ const formatLocation = (code: string) => {
     return BUILDING_MAP[prefix] ? `${BUILDING_MAP[prefix]}${roomNumber}` : code;
 };
 
-const CourseSelectionScreen = () => {
+const CourseSelectionScreen = ({ navigation }: any) => {
     const [searchText, setSearchText] = useState('');
     const [courses, setCourses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -232,7 +233,10 @@ const CourseSelectionScreen = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <TopNavBar title="選課" />
+            <TopNavBar 
+                title="選課" 
+                onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+            />
             <View style={styles.container}>
                 {/* 💡 搜尋列與標題 */}
                 <FlatList

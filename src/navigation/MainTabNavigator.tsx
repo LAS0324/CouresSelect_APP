@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Image } from 'expo-image';
 import React from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +9,7 @@ import { COLORS } from '../styles/theme';
 // 引入你的四個頁面
 import CourseSelection_2 from '../screens/CourseSelection_2'; // 需建立
 import CreditStackNavigator from '../screens/credit_3/CreditStackNavigator';
+import NotificationScreen from '../screens/NotificationScreen';
 import SettingsStackNavigator from '../screens/SettingsStackNavigator';
 import TimetableScreen_1 from '../screens/Timetable_1';
 
@@ -30,6 +32,26 @@ const ChecklistIcon = ({ color, size }: { color: string, size: number }) => (
         <Path d="M3 6L4 7L6 5M3 12L4 13L6 11M3 18L4 19L6 17M9 6H21M9 12H21M9 18H21" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
 );
+
+const TimetableStack = createNativeStackNavigator();
+function TimetableStackNavigator() {
+    return (
+        <TimetableStack.Navigator screenOptions={{ headerShown: false }}>
+            <TimetableStack.Screen name="TimetableMain" component={TimetableScreen_1} />
+            <TimetableStack.Screen name="NotificationScreen" component={NotificationScreen} />
+        </TimetableStack.Navigator>
+    );
+}
+
+const CourseSelectionStack = createNativeStackNavigator();
+function CourseSelectionStackNavigator() {
+    return (
+        <CourseSelectionStack.Navigator screenOptions={{ headerShown: false }}>
+            <CourseSelectionStack.Screen name="CourseSelectionMain" component={CourseSelection_2} />
+            <CourseSelectionStack.Screen name="NotificationScreen" component={NotificationScreen} />
+        </CourseSelectionStack.Navigator>
+    );
+}
 
 const Tab = createBottomTabNavigator();
 
@@ -58,14 +80,14 @@ const MainTabNavigator = () => {
         >
             <Tab.Screen 
                 name="課表" 
-                component={TimetableScreen_1} 
+                component={TimetableStackNavigator} 
                 options={{
                     tabBarIcon: ({ color, size }) => <ScheduleIcon color={color} size={size} />
                 }}
             />
             <Tab.Screen 
                 name="選課" 
-                component={CourseSelection_2} 
+                component={CourseSelectionStackNavigator} 
                 options={{
                     tabBarIcon: ({ color, size }) => <FluentBookIcon color={color} size={size} />
                 }}

@@ -1,6 +1,6 @@
-import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useCourse } from '../../context/CourseContext';
 import TopNavBar from '../../navigation/TopNavBar';
 
@@ -28,7 +28,10 @@ export default function Credit({ navigation }: any) {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
-            <TopNavBar title="學分檢核" />
+            <TopNavBar 
+                title="學分檢核" 
+                onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+            />
             
             <ScrollView contentContainerStyle={styles.container}>
                 {/* 頂部半圓進度與總學分 */}
@@ -61,8 +64,7 @@ export default function Credit({ navigation }: any) {
                     <View style={styles.centerContent}>
                         <Text style={styles.totalCreditsLabel}>總學分</Text>
                         <View style={styles.treeBox}>
-                            <Text style={styles.treeText}>封面的樹</Text>
-                            <Text style={styles.treeText}>(成長動畫)</Text>
+                            
                             <Text style={styles.scoreText}>
                                 {currentTotal} <Text style={styles.scoreTotal}>/128</Text>
                             </Text>
@@ -128,17 +130,17 @@ const styles = StyleSheet.create({
     
     centerContent: {
         alignItems: 'center',
-        marginTop: 40, // 調整文字區塊的位置
+        marginTop: 70, // 調整文字區塊的位置
         zIndex: 10,
     },
     totalCreditsLabel: {
-        fontSize: 16,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#654321', // 深咖啡色
         marginBottom: 8,
     },
     treeBox: {
-        backgroundColor: '#C5E1A5', // 淺綠色背景
+        
         paddingVertical: 12,
         paddingHorizontal: 20,
         alignItems: 'center',
@@ -151,13 +153,13 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     scoreText: {
-        fontSize: 26,
+        fontSize: 30,
         fontWeight: 'bold',
         color: '#654321', // 深咖啡色
         marginTop: 4,
     },
     scoreTotal: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#654321',
     },

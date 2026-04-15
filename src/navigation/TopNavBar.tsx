@@ -14,6 +14,7 @@ interface TopNavBarProps {
     showBack?: boolean;
     onBackPress?: () => void;
     onRightMenuPress?: () => void;
+    onNotificationPress?: () => void;
 }
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ 
@@ -23,7 +24,8 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
     showRightMenu = false,
     showBack = false,
     onBackPress,
-    onRightMenuPress
+    onRightMenuPress,
+    onNotificationPress
 }) => {
     return (
         <View style={styles.container}>
@@ -48,7 +50,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
             {/* 最右邊：Notifications, Info, Menu 圖示 */}
             <View style={styles.rightContainer}>
                 {showInfo && (
-                    <TouchableOpacity activeOpacity={0.7} style={styles.iconMargin}>
+                    <TouchableOpacity activeOpacity={0.7} style={styles.iconMargin} onPress={onNotificationPress}>
                         <Ionicons name="notifications-outline" size={24} color={COLORS.navBarIcon} />
                     </TouchableOpacity>
                 )}
