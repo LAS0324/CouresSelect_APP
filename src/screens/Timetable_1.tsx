@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     SafeAreaView, StyleSheet, Text, TouchableOpacity,
     View
@@ -206,6 +207,7 @@ const TimetableScreen = ({ navigation }: any) => {
                 <TopNavBar 
                     title="課表" 
                     onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+                    onInfoPress={() => Alert.alert('課表', '\n1.在選課頁面所選課程將顯示於此，\n同個時段可以有複數堂課。\n\n2.長按課程可以進入刪除模式，\n點擊紅色×可以刪除課程。\n\n3.在課程較多或較密集時，\n建議使用雙指縮放功能放大課表，\n或是拖曳課表查看不同區域。')}
                 />
                 <View style={styles.container}>
                     <View style={styles.header}>

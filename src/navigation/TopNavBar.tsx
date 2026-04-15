@@ -15,6 +15,7 @@ interface TopNavBarProps {
     onBackPress?: () => void;
     onRightMenuPress?: () => void;
     onNotificationPress?: () => void;
+    onInfoPress?: () => void;
 }
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ 
@@ -25,7 +26,8 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
     showBack = false,
     onBackPress,
     onRightMenuPress,
-    onNotificationPress
+    onNotificationPress,
+    onInfoPress
 }) => {
     return (
         <View style={styles.container}>
@@ -55,7 +57,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
                     </TouchableOpacity>
                 )}
                 {showInfo && (
-                    <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined}>
+                    <TouchableOpacity activeOpacity={0.7} style={showRightMenu ? styles.iconMargin : undefined} onPress={onInfoPress}>
                         <Ionicons name="information-circle-outline" size={24} color={COLORS.navBarIcon} />
                     </TouchableOpacity>
                 )}

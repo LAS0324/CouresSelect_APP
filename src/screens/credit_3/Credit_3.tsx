@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useCourse } from '../../context/CourseContext';
 import TopNavBar from '../../navigation/TopNavBar';
@@ -31,6 +31,7 @@ export default function Credit({ navigation }: any) {
             <TopNavBar 
                 title="學分檢核" 
                 onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+                onInfoPress={() => Alert.alert('學分檢核', '\n1.此頁為協助同學審查自己畢業所需學分。\n\n2.透過勾選已修習的課程，\n系統會自動計算各類學分的總和。')}
             />
             
             <ScrollView contentContainerStyle={styles.container}>

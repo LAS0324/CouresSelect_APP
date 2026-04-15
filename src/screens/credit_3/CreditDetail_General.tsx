@@ -5,7 +5,7 @@ import { useCourse } from '../../context/CourseContext';
 import { COLORS } from '../../styles/theme';
 
 import { getApps, initializeApp } from 'firebase/app';
-import { collection, getDocs, getFirestore } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",

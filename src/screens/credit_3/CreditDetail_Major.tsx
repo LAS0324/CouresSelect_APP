@@ -6,7 +6,7 @@ import { COLORS } from '../../styles/theme';
 
 import { getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, getFirestore } from 'firebase/firestore';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",

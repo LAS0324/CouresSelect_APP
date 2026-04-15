@@ -50,6 +50,8 @@ const CourseItem = memo(({ course, isSelected, toggleCourse }: { course: any; is
 // 設定一個在組件外部的快取變數，避免每次進出頁面重複下載幾千筆資料
 let cachedFlexibleCourses: any[] | null = null;
 
+const Separator = () => <View style={{ height: 12 }} />;
+
 const CATEGORIES = [
     '全部',
     '已選取'
@@ -259,6 +261,7 @@ export default function CreditDetailFlexible({ navigation }: any) {
                         contentContainerStyle={{ paddingBottom: 80 }}
                         onEndReached={loadMore}
                         onEndReachedThreshold={0.5}
+                        ItemSeparatorComponent={Separator}
                         renderItem={({ item: course }) => (
                             <CourseItem 
                                 course={course} 
@@ -368,7 +371,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 14,
         paddingHorizontal: 16,
-        marginBottom: 12,
         borderRadius: 12,
         borderWidth: 1.5,
         backgroundColor: '#FDFBF7', 
