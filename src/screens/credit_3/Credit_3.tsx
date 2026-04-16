@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useCourse } from '../../context/CourseContext';
@@ -63,9 +64,11 @@ export default function Credit({ navigation }: any) {
                     </View>
 
                     <View style={styles.centerContent}>
-                        <Text style={styles.totalCreditsLabel}>總學分</Text>
+                        
                         <View style={styles.treeBox}>
-                            
+                            <Image source={require('../../../components/APP_icon.png')} // 💡 這裡請根據你的檔案結構確認相對
+                            style={{ width: 100, height: 100, marginBottom: 10 }} contentFit="contain"
+                        />
                             <Text style={styles.scoreText}>
                                 {currentTotal} <Text style={styles.scoreTotal}>/128</Text>
                             </Text>
@@ -131,19 +134,12 @@ const styles = StyleSheet.create({
     
     centerContent: {
         alignItems: 'center',
-        marginTop: 70, // 調整文字區塊的位置
+        marginTop: 40, // 調整文字區塊的位置
         zIndex: 10,
     },
-    totalCreditsLabel: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#654321', // 深咖啡色
-        marginBottom: 8,
-    },
     treeBox: {
-        
         paddingVertical: 12,
-        paddingHorizontal: 20,
+        paddingHorizontal: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
