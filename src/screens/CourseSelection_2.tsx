@@ -4,10 +4,10 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
-    LayoutAnimation, // 💡 引入 FlatList
+    LayoutAnimation,
     Platform, SafeAreaView,
     StatusBar, StyleSheet, Text, TextInput,
-    TouchableOpacity, // 💡 引入動畫庫
+    TouchableOpacity,
     UIManager,
     View
 } from 'react-native';
@@ -41,7 +41,6 @@ const CourseSelectionScreen = ({ navigation }: any) => {
     const [searchText, setSearchText] = useState('');
     const [courses, setCourses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    // 💡 取得 selectedCourses 用於過濾
     const { addCourse, currentSemester, selectedCourses } = useCourse();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [currentFilters, setCurrentFilters] = useState<any>(null);
@@ -82,7 +81,6 @@ const CourseSelectionScreen = ({ navigation }: any) => {
     }, [currentSemester]);
 
     const handleAddCourse = (course: any) => {
-        // 💡 觸發佈局動畫：下一次 State 更新導致的畫面變動會帶有動畫效果
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
         addCourse({
@@ -92,15 +90,12 @@ const CourseSelectionScreen = ({ navigation }: any) => {
             timeSlots: course.timeSlots || [],
             location: formatLocation(course.location) || '未定',
         });
-        // 移除 Alert，改用流暢的卡片消失感
     };
 
     const filteredCourses = useMemo(() => {
-        // 💡 1. 先獲取已選課程的 ID 列表 (轉成 Set 提高查詢效能)
         const selectedIds = new Set(selectedCourses.map(c => String(c.id)));
 
         const result = courses.filter((course: any) => {
-            // 💡 2. 核心邏輯：如果這堂課已經在課表裡，直接過濾掉不顯示
             if (selectedIds.has(String(course.id))) return false;
 
             const searchLower = searchText.toLowerCase();
@@ -154,7 +149,7 @@ const CourseSelectionScreen = ({ navigation }: any) => {
             if (a.electiveType !== "必修" && b.electiveType === "必修") return 1;
             return 0;
         });
-    }, [courses, searchText, currentFilters, selectedCourses]); // 💡 監聽 selectedCourses
+    }, [courses, searchText, currentFilters, selectedCourses]);
 
     const renderCourseItem = useCallback(({ item: course }: { item: any }) => (
         <View style={styles.courseCard}>
@@ -191,9 +186,8 @@ const CourseSelectionScreen = ({ navigation }: any) => {
             </View>
 
             <View style={styles.cardFooter}>
-                <TouchableOpacity onPress={() => console.log('打開評論區')}>
-                    <Text style={styles.reviewLink}>查看評論</Text>
-                </TouchableOpacity>
+                {/* 💡 已移除查看評論區塊 */}
+                <View style={{ flex: 1 }} />
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => handleAddCourse(course)}
@@ -202,13 +196,13 @@ const CourseSelectionScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
         </View>
-    ), [selectedCourses]); // 💡 當已選清單變動時重新生成渲染函式
+    ), [selectedCourses]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <TopNavBar 
-                title="選課" 
-                onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+            <TopNavBar
+                title="選課"
+                onNotificationPress={() => navigation.navigate('NotificationScreen')}
                 onInfoPress={() => Alert.alert('選課清單', '此頁面為\n\n1.所選課程將顯示於課表頁面。\n\n2.點擊「進階查詢」可以根據系所、年級、時間等條件篩選課程。\n\n3.點擊課程卡片右下角的加號按鈕可以將課程加入課表，已加入的課程將不再顯示在列表中。')}
             />
             <View style={styles.container}>
@@ -270,7 +264,6 @@ const CourseSelectionScreen = ({ navigation }: any) => {
                 visible={isModalVisible}
                 onClose={() => setIsModalVisible(false)}
                 onSearch={(filters) => {
-                    // 💡 搜尋過濾時也可以加上動畫
                     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                     setCurrentFilters(filters);
                     setIsModalVisible(false);
@@ -280,7 +273,6 @@ const CourseSelectionScreen = ({ navigation }: any) => {
     );
 };
 
-// ... Styles 維持不變 ...
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -328,7 +320,6 @@ const styles = StyleSheet.create({
     detailItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
     detailText: { fontSize: 16, marginLeft: 8 },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 },
-    reviewLink: { fontSize: 14, color: '#666', textDecorationLine: 'underline' },
     addButton: { backgroundColor: '#7B886F', width: 45, height: 45, borderRadius: 22.5, justifyContent: 'center', alignItems: 'center' },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,

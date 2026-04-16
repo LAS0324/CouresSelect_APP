@@ -1,10 +1,23 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import {
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
+    Image // 💡 引入 Image 元件
+} from 'react-native';
 import { COLORS } from '../styles/theme';
 
-// 初始化 Firebase Config (Web SDK - 支援 Expo Go 的版本)
+// 初始化 Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyBAKhdryuoSlPhhgedbxb5-pL24TtAzfzA",
     authDomain: "courseapp-788ad.firebaseapp.com",
@@ -15,11 +28,9 @@ const firebaseConfig = {
     measurementId: "G-L6FBFFW8PM"
 };
 
-// 避免 React Native 熱更新時重複初始化 Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-// 定義組件接收的參數類型
 interface LoginProps {
     onLogin: () => void;
 }
@@ -30,17 +41,15 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoginMode, setIsLoginMode] = useState(true);
 
-    // 處理登入
     const handleLogin = async () => {
         if (!email || !password) {
             Alert.alert("請填寫完整", "請輸入信箱與密碼！");
             return;
         }
-
         try {
             setIsLoading(true);
             await signInWithEmailAndPassword(auth, email, password);
-            onLogin(); // 登入成功，導向主頁面
+            onLogin();
         } catch (error: any) {
             console.error(error);
             Alert.alert("登入失敗", "請確認您的信箱與密碼是否正確，或嘗試註冊。");
@@ -49,13 +58,11 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
         }
     };
 
-    // 處理註冊
     const handleRegister = async () => {
         if (!email || !password) {
             Alert.alert("請填寫完整", "請輸入信箱與密碼！");
             return;
         }
-        
         try {
             setIsLoading(true);
             await createUserWithEmailAndPassword(auth, email, password);
@@ -80,78 +87,81 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <SafeAreaView style={styles.container}>
-                <KeyboardAvoidingView 
-                  behavior={Platform.OS === "ios" ? "padding" : "height"}
-                  style={styles.contentContainer}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.contentContainer}
                 >
-                {/* 插圖區域 */}
-                <View style={styles.imageWrapper}>
-                    <View style={styles.imagePlaceholder}>
-                        <Text style={{ fontSize: 50 }}>🦉</Text>
+                    {/* 插圖區域 */}
+                    <View style={styles.imageWrapper}>
+                        {/* 💡 這裡已改為 Image 元件，請在下方 source 修改你的路徑 */}
+                        <Image
+                            source={require('../../components/APP_icon(bg).png')}
+                            style={styles.loginImage}
+                            resizeMode="contain"
+                        />
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>✨ 學習夥伴</Text>
+                        </View>
                     </View>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>✨ 學習夥伴</Text>
+
+                    {/* 標題與標語 */}
+                    <View style={styles.textSection}>
+                        <Text style={styles.title}>{isLoginMode ? "歡迎使用選課助手" : "建立新帳號"}</Text>
+                        <Text style={styles.subtitle}>{isLoginMode ? "開展您的學術禪意之旅" : "加入我們，開始您的學習旅程"}</Text>
                     </View>
+
+                    {/* 使用者輸入區域 */}
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="請輸入 Email 信箱"
+                            placeholderTextColor="#999"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="請輸入密碼 (至少 6 位數)"
+                            placeholderTextColor="#999"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                        />
+                    </View>
+
+                    {/* 登入 / 註冊 主要按鈕 */}
+                    <TouchableOpacity
+                        style={styles.loginButton}
+                        onPress={isLoginMode ? handleLogin : handleRegister}
+                        activeOpacity={0.8}
+                        disabled={isLoading}
+                    >
+                        <Text style={styles.loginButtonText}>
+                            {isLoading ? "處理中..." : (isLoginMode ? "登入" : "註冊")}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* 切換模式文字 */}
+                    <TouchableOpacity
+                        style={{ marginTop: 10, paddingVertical: 10, alignItems: 'center' }}
+                        onPress={() => setIsLoginMode(!isLoginMode)}
+                        activeOpacity={0.8}
+                        disabled={isLoading}
+                    >
+                        <Text style={{ color: COLORS.primary || "#4A90E2", fontSize: 16, fontWeight: '600' }}>
+                            {isLoginMode ? "還沒註冊嗎？前往註冊" : "已有帳號？返回登入"}
+                        </Text>
+                    </TouchableOpacity>
+
+                </KeyboardAvoidingView>
+
+                {/* 底部版本資訊 */}
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>THE ACADEMIC SANCTUARY • VERSION 2.0</Text>
                 </View>
-
-                {/* 標題與標語 */}
-                <View style={styles.textSection}>
-                    <Text style={styles.title}>{isLoginMode ? "歡迎使用選課助手" : "建立新帳號"}</Text>
-                    <Text style={styles.subtitle}>{isLoginMode ? "開展您的學術禪意之旅" : "加入我們，開始您的學習旅程"}</Text>
-                </View>
-
-                {/* 使用者輸入區域 */}
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="請輸入 Email 信箱"
-                        placeholderTextColor="#999"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="請輸入密碼 (至少 6 位數)"
-                        placeholderTextColor="#999"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                    />
-                </View>
-
-                {/* 登入 / 註冊 主要按鈕 */}
-                <TouchableOpacity
-                    style={styles.loginButton}
-                    onPress={isLoginMode ? handleLogin : handleRegister}
-                    activeOpacity={0.8}
-                    disabled={isLoading}
-                >
-                    <Text style={styles.loginButtonText}>
-                        {isLoading ? "處理中..." : (isLoginMode ? "登入" : "註冊")}
-                    </Text>
-                </TouchableOpacity>
-
-                {/* 切換模式文字 */}
-                <TouchableOpacity
-                    style={{ marginTop: 10, paddingVertical: 10, alignItems: 'center' }}
-                    onPress={() => setIsLoginMode(!isLoginMode)}
-                    activeOpacity={0.8}
-                    disabled={isLoading}
-                >
-                    <Text style={{ color: COLORS.primary || "#4A90E2", fontSize: 16, fontWeight: '600' }}>
-                        {isLoginMode ? "還沒註冊嗎？前往註冊" : "已有帳號？返回登入"}
-                    </Text>
-                </TouchableOpacity>
-
-            </KeyboardAvoidingView>
-
-            {/* 底部版本資訊 */}
-            <View style={styles.footer}>
-                <Text style={styles.footerText}>THE ACADEMIC SANCTUARY • VERSION 2.0</Text>
-            </View>
-        </SafeAreaView>
+            </SafeAreaView>
         </TouchableWithoutFeedback>
     );
 };
@@ -170,14 +180,14 @@ const styles = StyleSheet.create({
     imageWrapper: {
         position: "relative",
         marginBottom: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    imagePlaceholder: {
+    // 💡 新增圖片樣式
+    loginImage: {
         width: 180,
         height: 180,
-        backgroundColor: "#E6E5DF",
         borderRadius: 30,
-        justifyContent: "center",
-        alignItems: "center",
     },
     badge: {
         position: "absolute",
@@ -228,7 +238,7 @@ const styles = StyleSheet.create({
         color: COLORS.text,
     },
     loginButton: {
-        backgroundColor: COLORS.primary || "#4A90E2", 
+        backgroundColor: COLORS.primary || "#4A90E2",
         width: "100%",
         height: 55,
         borderRadius: 30,

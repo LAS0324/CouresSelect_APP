@@ -67,6 +67,8 @@ const CoursePill = ({ course, allCourses, tempWidth, tempHeight, isDeleteMode, r
             height: layout.height * h - 2,
             width: (w * layout.widthPercent) / 100 - 2,
             left: layout.day * w + (w * layout.leftOffsetPercent) / 100 + 1,
+            // 💡 關鍵修正 1：進入刪除模式時提高 zIndex，確保叉叉不會被遮擋
+            zIndex: isDeleteMode ? 999 : 1,
         };
     });
 
@@ -91,7 +93,6 @@ const CoursePill = ({ course, allCourses, tempWidth, tempHeight, isDeleteMode, r
             >
                 <View style={styles.textWrapper}>
                     <View style={styles.courseTextContainer}>
-                        {/* 課堂名稱：衝堂時不限行數顯示，非衝堂限制2行 */}
                         <Animated.Text
                             style={[styles.unifiedText, textAnimatedStyle]}
                             numberOfLines={isClashed ? 0 : 2}
@@ -100,13 +101,11 @@ const CoursePill = ({ course, allCourses, tempWidth, tempHeight, isDeleteMode, r
                         </Animated.Text>
 
                         {isClashed ? (
-                            /* 💡 衝堂：放大後才顯示地點/老師 */
                             <Animated.View style={[styles.detailContainer, detailAnimatedStyle]}>
                                 <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.location)}</Animated.Text>
                                 <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.teacher)}</Animated.Text>
                             </Animated.View>
                         ) : (
-                            /* 💡 非衝堂：永遠顯示 */
                             <View style={styles.detailContainer}>
                                 <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.location)}</Animated.Text>
                                 <Animated.Text style={[styles.unifiedText, textAnimatedStyle]} numberOfLines={1}>{String(course.teacher)}</Animated.Text>
@@ -204,9 +203,9 @@ const TimetableScreen = ({ navigation }: any) => {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaView style={styles.safeArea}>
-                <TopNavBar 
-                    title="課表" 
-                    onNotificationPress={() => navigation.navigate('NotificationScreen')} 
+                <TopNavBar
+                    title="課表"
+                    onNotificationPress={() => navigation.navigate('NotificationScreen')}
                     onInfoPress={() => Alert.alert('課表', '\n1.在選課頁面所選課程將顯示於此，\n同個時段可以有複數堂課。\n\n2.長按課程可以進入刪除模式，\n點擊紅色×可以刪除課程。\n\n3.在課程較多或較密集時，\n建議使用雙指縮放功能放大課表，\n或是拖曳課表查看不同區域。')}
                 />
                 <View style={styles.container}>
@@ -255,7 +254,8 @@ const TimetableScreen = ({ navigation }: any) => {
                                                 tempHeight={tempHeight}
                                                 isDeleteMode={isDeleteMode}
                                                 removeCourse={removeCourse}
-                                                onLongPress={() => tempHeight.value > 100 && setIsDeleteMode(true)}
+                                                // 💡 關鍵修正 2：移除縮小限制，直接允許進入刪除模式
+                                                onLongPress={() => setIsDeleteMode(true)}
                                             />
                                         ))}
                                     </Animated.View>
@@ -288,13 +288,35 @@ const styles = StyleSheet.create({
     canvas: { position: 'relative' },
     gridLineH: { position: 'absolute', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
     gridLineV: { position: 'absolute', width: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
-    courseItem: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: 8, elevation: 3, borderWidth: 0.5, borderColor: '#E6E1D3', overflow: 'visible' },
+    courseItem: {
+        position: 'absolute',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        elevation: 3,
+        borderWidth: 0.5,
+        borderColor: '#E6E1D3',
+        overflow: 'visible' // 💡 確保叉叉可以浮現
+    },
     textWrapper: { flex: 1, width: '100%', overflow: 'hidden', borderRadius: 8 },
     courseTouch: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2, paddingVertical: 4 },
-    courseTextContainer: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }, // 💡 確保容器鋪滿並垂直置中
-    detailContainer: { width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 2 }, // 💡 垂直置中
+    courseTextContainer: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+    detailContainer: { width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     unifiedText: { fontWeight: 'bold', color: '#6D5D4B', textAlign: 'center' },
-    deleteBadge: { position: 'absolute', top: -10, right: -10, backgroundColor: '#FF6B6B', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', zIndex: 9999, elevation: 5, borderWidth: 1.5, borderColor: '#FFF' },
+    deleteBadge: {
+        position: 'absolute',
+        top: -12,
+        right: -12,
+        backgroundColor: '#FF6B6B',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10000,
+        elevation: 5,
+        borderWidth: 2,
+        borderColor: '#FFF'
+    },
     deleteText: { color: '#FFF', fontSize: 14, fontWeight: 'bold', lineHeight: 18 }
 });
 
