@@ -4,7 +4,7 @@
     "slug": "CoursesApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./components/APP_icon(bg).png",
     "scheme": "coursesapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -45,6 +45,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b805d245-50ad-410d-9eaa-0fc27a82c062"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b805d245-50ad-410d-9eaa-0fc27a82c062"
     }
   }
 }

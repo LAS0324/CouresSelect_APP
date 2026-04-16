@@ -100,7 +100,7 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
                             resizeMode="contain"
                         />
                         <View style={styles.badge}>
-                            <Text style={styles.badgeText}>✨ 學習夥伴</Text>
+                            <Text style={styles.badgeText}>學習夥伴</Text>
                         </View>
                     </View>
 
