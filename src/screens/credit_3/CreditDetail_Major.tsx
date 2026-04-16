@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, Keyboard, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useCourse } from '../../context/CourseContext';
 import { COLORS } from '../../styles/theme';
 
@@ -231,7 +231,7 @@ export default function CreditDetailMajor({ navigation }: any) {
     });
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
             
@@ -332,7 +332,7 @@ export default function CreditDetailMajor({ navigation }: any) {
                 </Animated.View>
             )}
         </SafeAreaView>
-        </TouchableWithoutFeedback>
+        
     );
 }
 

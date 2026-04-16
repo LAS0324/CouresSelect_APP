@@ -64,6 +64,9 @@ export default function CreditDetailMust({ navigation }: any) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('全部');
     
+    // 建立搜尋框的 Ref，用來控制鍵盤彈出
+    const searchInputRef = useRef<TextInput>(null);
+
     // 初始化用 global state，若更改後尚未儲存就存在本地
     const [checkedCourses, setCheckedCourses] = useState<{ [key: string]: boolean }>(passedMustCourses || {});
 
@@ -179,63 +182,79 @@ export default function CreditDetailMust({ navigation }: any) {
     });
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="dark-content" />
-                
-                <View style={styles.header}>
-                <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={24} color="#654321" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>{title}</Text>
-                <View style={styles.rightPlaceholder} />
-            </View>
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
             
-            <View style={styles.searchContainer}>
-                <View style={styles.searchBox}>
-                    <Ionicons name="search" size={22} color="#888" style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="搜尋課程名稱..."
-                        placeholderTextColor="#999"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7} style={{ padding: 4 }}>
-                            <Ionicons name="close-circle" size={20} color="#B0B0B0" />
+            {/* 只包覆上半部，點擊空白處可收起鍵盤 */}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View>
+                    <View style={styles.header}>
+                        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <Ionicons name="chevron-back" size={24} color="#654321" />
                         </TouchableOpacity>
-                    )}
+                        
+                        {/* 點擊標題與右側空白處聚焦搜尋框，跳出鍵盤 */}
+                        <TouchableOpacity 
+                            style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} 
+                            activeOpacity={1} 
+                            onPress={() => searchInputRef.current?.focus()}
+                        >
+                            <View style={{ flex: 1, alignItems: 'center' }}>
+                                <Text style={styles.headerTitle}>{title}</Text>
+                            </View>
+                            <View style={styles.rightPlaceholder} />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.searchContainer}>
+                        <View style={styles.searchBox}>
+                            <Ionicons name="search" size={22} color="#888" style={styles.searchIcon} />
+                            <TextInput
+                                ref={searchInputRef}
+                                style={styles.searchInput}
+                                placeholder="搜尋課程名稱..."
+                                placeholderTextColor="#999"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7} style={{ padding: 4 }}>
+                                    <Ionicons name="close-circle" size={20} color="#B0B0B0" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* 橫向捲動分類標籤區塊 (範圍與搜尋欄同寬) */}
+                    <View style={styles.tagsWrapper}>
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.tagsContainer}
+                        >
+                            {CATEGORIES.map((cat, index) => {
+                                const tagColor = COLORS.tags[cat as keyof typeof COLORS.tags] || { bg: '#EAEAEA', border: '#CCCCCC', text: '#333333' };
+                                const isActive = activeTab === cat;
+
+                                return (
+                                    <TouchableOpacity 
+                                        key={index} 
+                                        onPress={() => setActiveTab(cat)}
+                                        style={[
+                                            styles.tagBadge, 
+                                            isActive ? { backgroundColor: tagColor.bg, borderColor: tagColor.border } : { backgroundColor: '#F8F7F2', borderColor: '#EAEAEA' }
+                                        ]}
+                                    >
+                                        <Text style={[styles.tagText, isActive ? { color: tagColor.text } : { color: '#888' }]}>{cat}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
 
-            {/* 橫向捲動分類標籤區塊 (範圍與搜尋欄同寬) */}
-            <View style={styles.tagsWrapper}>
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.tagsContainer}
-                >
-                    {CATEGORIES.map((cat, index) => {
-                        const tagColor = COLORS.tags[cat as keyof typeof COLORS.tags] || { bg: '#EAEAEA', border: '#CCCCCC', text: '#333333' };
-                        const isActive = activeTab === cat;
-
-                        return (
-                            <TouchableOpacity 
-                                key={index} 
-                                onPress={() => setActiveTab(cat)}
-                                style={[
-                                    styles.tagBadge, 
-                                    isActive ? { backgroundColor: tagColor.bg, borderColor: tagColor.border } : { backgroundColor: '#F8F7F2', borderColor: '#EAEAEA' }
-                                ]}
-                            >
-                                <Text style={[styles.tagText, isActive ? { color: tagColor.text } : { color: '#888' }]}>{cat}</Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
-            </View>
-
+            {/* 下半部 FlatList 獨立，確保滑動順暢且不被干擾 */}
             <View style={styles.content}>
                 {loading ? (
                     <ActivityIndicator size="large" color="#23A85B" style={{ marginTop: 40 }} />
@@ -280,7 +299,6 @@ export default function CreditDetailMust({ navigation }: any) {
                 </Animated.View>
             )}
         </SafeAreaView>
-        </TouchableWithoutFeedback>
     );
 }
 
@@ -341,7 +359,7 @@ const styles = StyleSheet.create({
     },
     tagBadge: {
         borderWidth: 1,
-        borderRadius: 20,           
+        borderRadius: 20,          
         paddingVertical: 6,
         paddingHorizontal: 16,
         marginRight: 10,            
@@ -364,11 +382,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1.5,
         backgroundColor: '#FDFBF7', 
-        borderColor: '#E8DED1',     
+        borderColor: '#E8DED1',    
     },
     courseCardSelected: {
         backgroundColor: '#ebf7ee', 
-        borderColor: '#23A85B',     
+        borderColor: '#23A85B',    
     },
     checkboxIcon: {
         marginRight: 14,
