@@ -115,11 +115,7 @@ export default function PersonalSettings({ navigation }: any) {
                         <Ionicons name="person" size={60} color="#FFF" />
                     </View>
                     
-                    {/* 右下角的 36x36 圓圈 */}
-                    <View style={styles.editBadge}>
-                        {/* 使用 Ionicons 來暫代 photo 圖示，大小 24x24 */}
-                        <Ionicons name="image-outline" size={24} color={COLORS.avatarEditIcon} />
-                    </View>
+                    
                 </View>
                 
                 {/* 姓名區 */}

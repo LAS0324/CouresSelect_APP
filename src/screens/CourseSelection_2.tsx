@@ -203,7 +203,7 @@ const CourseSelectionScreen = ({ navigation }: any) => {
             <TopNavBar
                 title="選課"
                 onNotificationPress={() => navigation.navigate('NotificationScreen')}
-                onInfoPress={() => Alert.alert('選課清單', '此頁面為\n\n1.所選課程將顯示於課表頁面。\n\n2.點擊「進階查詢」可以根據系所、年級、時間等條件篩選課程。\n\n3.點擊課程卡片右下角的加號按鈕可以將課程加入課表，已加入的課程將不再顯示在列表中。')}
+                onInfoPress={() => Alert.alert('選課清單', '\n1.所選課程將顯示於課表頁面。\n\n2.點擊「進階查詢」可以根據系所、年級、時間等條件篩選課程。\n\n3.點擊課程卡片右下角的加號按鈕可以將課程加入課表，已加入的課程將不再顯示在列表中。')}
             />
             <View style={styles.container}>
                 <FlatList

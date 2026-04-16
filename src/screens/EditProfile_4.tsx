@@ -131,9 +131,6 @@ export default function EditProfile({ navigation }: any) {
                         <View style={styles.avatarContainer}>
                             <Ionicons name="person" size={60} color="#FFF" />
                         </View>
-                        <TouchableOpacity style={styles.editBadge} activeOpacity={0.7}>
-                            <Ionicons name="camera-outline" size={20} color={COLORS.avatarEditIcon} />
-                        </TouchableOpacity>
                     </View>
                     <Text style={styles.headerName}>{name || "您的名字"}</Text>
                     <Text style={styles.headerSubtitle}>{currentUser?.email || "未登入 Email"}</Text>
