@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, signOut } from 'firebase/auth';
 import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
+import { useRouter } from 'expo-router'; // 💡 引入 useRouter
 import React, { useState } from 'react';
 import { Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import TopNavBar from '../navigation/TopNavBar';
@@ -38,26 +39,23 @@ const setingOptions = [
 
 const logoutOption = {
     title: "登出",
-    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwLjE1IDEzSDhWMTFIMjAuMTVMMTguNiA5LjQ1TDIwIDhMMjQgMTJMMjAgMTZMMTguNiAxNC41NUwyMC4xNSAxM1pNMTUgOVY1SDVWMTlIMTVWMTVIMTdWMTlDMTcgMTkuNTUgMTYuODA0MiAyMC4wMjA4IDE2LjQxMjUgMjAuNDEyNUMxNi4wMjA4IDIwLjgwNDIgMTUuNTUgMjEgMTUgMjFINUM0LjQ1IDIxIDMuOTc5MTcgMjAuODA0MiAzLjU4NzUgMjAuNDEyNUMzLjE5NTgzIDIwLjAyMDggMyAxOS41NSAzIDE5VjVDMyA0LjQ1IDMuMTk1ODMgMy45NzkxNyAzLjU4NzUgMy41ODc1QzMuOTc5MTcgMy4xOTU4MyA0LjQ1IDMgNSAzSDE1QzE1LjU1IDMgMTYuMDIwOCAzLjE5NTgzIDE2LjQxMjUgMy41ODc1QzE2LjgwNDIgMy45NzkxNyAxNyA0LjQ1IDE3IDVWOUgxNVoiIGZpbGw9IiNGRkZFRkEiLz4KPC9zdmc+"
+    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwLjE1IDEzSDhWMTFIMjAuMTVMMTguNiAxNC41NUwyMC4xNSAxM1pNMTUgOVY1SDVWMTlIMTVWMTVIMTdWMTlDMTcgMTkuNTUgMTYuODA0MiAyMC4wMjA4IDE2LjQxMjUgMjAuNDEyNUMxNi4wMjA4IDIwLjgwNDIgMTUuNTUgMjEgMTUgMjFINUM0LjQ1IDIxIDMuOTc5MTcgMjAuODA0MiAzLjU4NzUgMjAuNDEyNUMzLjE5NTgzIDIwLjAyMDggMyAxOS41NSAzIDE5VjVDMyA0LjQ1IDMuMTk1ODMgMy45NzkxNyAzLjU4NzUgMy41ODc1QzMuOTc5MTcgMy4xOTU4MyA0LjQ1IDMgNSAzSDE1QzE1LjU1IDMgMTYuMDIwOCAzLjE5NTgzIDE2LjQxMjUgMy41ODc1QzE2LjgwNDIgMy45NzkxNyAxNyA0LjQ1IDE3IDVWOUgxNVoiIGZpbGw9IiNGRkZFRkEiLz4KPC9zdmc+"
 };
 
 export default function PersonalSettings({ navigation }: any) {
-    // 顯示在畫面上的狀態
+    const router = useRouter(); // 💡 初始化路由器
     const [name, setName] = useState('您的名字');
     const [department, setDepartment] = useState('數位科技設計學系');
     const [className, setClassName] = useState('數位二甲');
     const [studentId, setStudentId] = useState('111319100');
     const [school, setSchool] = useState('尚未設定學校');
-
     const [isDarkMode, setIsDarkMode] = useState(false);
 
-    // 取得當前使用者
     const currentUser = auth.currentUser;
 
-    // 監聽依賴 Firestore 的即時更新
     React.useEffect(() => {
         if (!currentUser) return;
-        
+
         const docRef = doc(db, "users", currentUser.uid);
         const unsubscribe = onSnapshot(docRef, (userDoc) => {
             if (userDoc.exists()) {
@@ -76,21 +74,27 @@ export default function PersonalSettings({ navigation }: any) {
     }, [currentUser]);
 
     const handleEditPress = () => {
-        // 使用 Stack 跳轉到編輯個人資料畫面
         navigation.navigate('EditProfile');
     };
 
     const handleLogout = () => {
         Alert.alert('登出確認', '確定要登出目前的帳號嗎？', [
             { text: '取消', style: 'cancel' },
-            { 
-                text: '確定', 
+            {
+                text: '確定',
                 style: 'destructive',
-                onPress: () => {
-                    signOut(auth).catch((error) => {
-                        console.error('Logout error: ', error);
-                        Alert.alert('登出失敗', '出了點問題，請稍後再試。');
-                    });
+                onPress: async () => {
+                    // 💡 如果是正式帳號，執行 Firebase 登出
+                    if (currentUser) {
+                        signOut(auth).catch((error) => {
+                            console.error('Logout error: ', error);
+                            Alert.alert('登出失敗', '出了點問題，請稍後再試。');
+                        });
+                    } else {
+                        // 💡 訪客模式登出：直接導向根路徑 (index) 重置狀態
+                        // 在 expo-router 中，replace('/') 會重新載入 index.tsx
+                        router.replace('/');
+                    }
                 }
             }
         ]);
@@ -98,39 +102,31 @@ export default function PersonalSettings({ navigation }: any) {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <TopNavBar 
-                title="設定" 
-                showMenu={false} 
-                showInfo={false} 
-                showRightMenu={true} 
-                onRightMenuPress={handleEditPress} 
+            <TopNavBar
+                title="設定"
+                showMenu={false}
+                showInfo={false}
+                showRightMenu={true}
+                onRightMenuPress={handleEditPress}
             />
-            
+
             <ScrollView contentContainerStyle={styles.container}>
-                {/* 頭像與編輯圓圈組合區 */}
                 <View style={styles.avatarWrapper}>
-                    {/* 內層頭像區域：大小 100x100 */}
                     <View style={styles.avatarContainer}>
-                        {/* 使用預設的人頭 Icon，若你有 28.svg 也可以用 <Image source={require('../../assets/28.svg')} /> 或 SVG component 取代這行 */}
                         <Ionicons name="person" size={60} color="#FFF" />
                     </View>
-                    
-                    
                 </View>
-                
-                {/* 姓名區 */}
+
                 <TouchableOpacity onPress={handleEditPress} style={styles.nameContainer} activeOpacity={0.7}>
                     <View style={styles.nameBox}>
                         <Text style={styles.nameText}>{name}</Text>
                     </View>
                 </TouchableOpacity>
 
-                {/* 學校顯示區塊 */}
                 <View style={styles.emailContainer}>
                     <Text style={styles.emailText}>{school}</Text>
                 </View>
 
-                {/* 班級、學號、學院標籤區塊 */}
                 <TouchableOpacity onPress={handleEditPress} style={styles.tagsContainer} activeOpacity={0.7}>
                     <View style={styles.tagBadge}>
                         <Text style={styles.tagText}>{department}</Text>
@@ -143,128 +139,103 @@ export default function PersonalSettings({ navigation }: any) {
                     </View>
                 </TouchableOpacity>
 
-                {/* 330px 設定選項容器 */}
                 <View style={[styles.mainSettingsContainer, { backgroundColor: COLORS.settingsCardBg }]}>
                     <View style={[styles.settingRow, { marginTop: 20 }]}>
                         <View style={[styles.settingIconCircle, { backgroundColor: COLORS.darkModeIconBg }]}>
-                            <Image 
-                                source={{ uri: darkModeSvgData }} 
-                                style={{ width: 28, height: 28, tintColor: COLORS.darkModeIcon }} 
-                                contentFit="contain" 
+                            <Image
+                                source={{ uri: darkModeSvgData }}
+                                style={{ width: 28, height: 28, tintColor: COLORS.darkModeIcon }}
+                                contentFit="contain"
                             />
                         </View>
                         <View style={styles.settingTextContainer}>
                             <Text style={styles.settingText}>深夜模式</Text>
                         </View>
-                        <Switch 
-                            value={isDarkMode} 
-                            onValueChange={setIsDarkMode} 
+                        <Switch
+                            value={isDarkMode}
+                            onValueChange={setIsDarkMode}
                             style={styles.settingSwitch}
                         />
                     </View>
 
-                    {/* 其他四個一樣的選項 */}
                     {setingOptions.map((option, index) => (
                         <TouchableOpacity key={index} style={styles.settingRow} activeOpacity={0.7}>
                             <View style={[styles.settingIconCircle, { backgroundColor: COLORS.settingIconBg }]}>
-                                <Image 
-                                    source={{ uri: option.icon }} 
-                                    style={{ width: 28, height: 28 }} 
-                                    contentFit="contain" 
+                                <Image
+                                    source={{ uri: option.icon }}
+                                    style={{ width: 28, height: 28 }}
+                                    contentFit="contain"
                                 />
                             </View>
                             <View style={styles.settingTextContainer}>
                                 <Text style={styles.settingText}>{option.title}</Text>
                             </View>
-                            <Image 
-                                source={{ uri: chevronForwardSvgData }} 
-                                style={[styles.forwardIcon, { tintColor: COLORS.forwardIconColor }]} 
-                                contentFit="contain" 
+                            <Image
+                                source={{ uri: chevronForwardSvgData }}
+                                style={[styles.forwardIcon, { tintColor: COLORS.forwardIconColor }]}
+                                contentFit="contain"
                             />
                         </TouchableOpacity>
                     ))}
-
                 </View>
 
-                {/* 登出獨立區域 */}
                 <View style={[styles.mainSettingsContainer, { backgroundColor: COLORS.settingsCardBg, marginTop: 20, paddingBottom: 0 }]}>
-                    <TouchableOpacity 
-                        style={[styles.settingRow, { marginTop: 20, marginBottom: 20 }]} 
+                    <TouchableOpacity
+                        style={[styles.settingRow, { marginTop: 20, marginBottom: 20 }]}
                         activeOpacity={0.7}
                         onPress={handleLogout}
                     >
                         <View style={[styles.settingIconCircle, { backgroundColor: COLORS.settingIconBg }]}>
-                            <Image 
-                                source={{ uri: logoutOption.icon }} 
-                                style={{ width: 28, height: 28 }} 
-                                contentFit="contain" 
+                            <Image
+                                source={{ uri: logoutOption.icon }}
+                                style={{ width: 28, height: 28 }}
+                                contentFit="contain"
                             />
                         </View>
                         <View style={styles.settingTextContainer}>
                             <Text style={styles.settingText}>{logoutOption.title}</Text>
                         </View>
-                        <Image 
-                            source={{ uri: chevronForwardSvgData }} 
-                            style={[styles.forwardIcon, { tintColor: COLORS.forwardIconColor }]} 
-                            contentFit="contain" 
+                        <Image
+                            source={{ uri: chevronForwardSvgData }}
+                            style={[styles.forwardIcon, { tintColor: COLORS.forwardIconColor }]}
+                            contentFit="contain"
                         />
                     </TouchableOpacity>
                 </View>
-                
-            
             </ScrollView>
-
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: { 
-        flex: 1, 
-        backgroundColor: '#FAF7ED', 
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#FAF7ED',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
     },
     container: {
         flexGrow: 1,
-        alignItems: 'center', // 確保包含頭像在內的內容都會在正中間 (水平置中)
-        paddingBottom: 60,    // 讓底部保留一點空間，確保可以滑到底
+        alignItems: 'center',
+        paddingBottom: 60,
     },
     avatarWrapper: {
-        marginTop: 50,         // 距離 top-nav-bar 50
+        marginTop: 50,
         width: 100,
         height: 100,
-        position: 'relative',  // 讓裡面的 editBadge 可以設定 absolute 依靠它定位
+        position: 'relative',
     },
     avatarContainer: {
         width: 100,
         height: 100,
-        borderRadius: 50,      // 讓外框變成完美圓形 (100 / 2)
-        backgroundColor: '#D1C8B4', // 給個預設底色
-        alignItems: 'center',  // 讓裡面的 Icon 置中
-        justifyContent: 'center',
-        overflow: 'hidden',    // 確保未來的圖片不會超出圓形
-    },
-    editBadge: {
-        position: 'absolute',  // 疊在頭像上方
-        bottom: 0,            // 往右下偏移 5px
-        right: -10,             // 往右下偏移 5px
-        width: 36,
-        height: 36,
-        borderRadius: 18,      // 36 / 2
-        backgroundColor: COLORS.avatarEditBg, // 由 styles(theme.ts) 控管圓圈顏色
+        borderRadius: 50,
+        backgroundColor: '#D1C8B4',
         alignItems: 'center',
-        justifyContent: 'center', // 確保 24x24 圖示在最中間
-        
-        // --- 加上微小陰影，才不會跟頭像或背景融為一體 (可選) ---
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3,
-        elevation: 4,
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
     nameContainer: {
         flexDirection: 'row',
-        marginTop: 30, // 距離頭像 30px
+        marginTop: 30,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -279,70 +250,62 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
     },
-    editIconContainer: {
-        marginLeft: 8, // 筆與文字之間的距離
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     emailContainer: {
-        marginTop: 15,       // 距離名字下方 10px
-        height: 24,          // 固定高度 24
+        marginTop: 15,
+        height: 24,
         backgroundColor: '#D9D9D9',
-        borderRadius: 15,    // 圓角 15
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 16, // 讓寬度隨著文字撐開的同時左右留點空隙，不會太貼邊
+        paddingHorizontal: 16,
     },
     emailText: {
-        fontSize: 15,        // 字體大小 12
+        fontSize: 15,
         color: '#000000',
     },
-    
     tagsContainer: {
         flexDirection: 'row',
         marginTop: 16,
         gap: 10,
     },
     tagBadge: {
-        height: 24,          // 高度 24
+        height: 24,
         backgroundColor: '#D9D9D9',
-        borderRadius: 15,    // borderRadius 15
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 16,
     },
     tagText: {
-        fontSize: 12,        // 字體 12
+        fontSize: 12,
         color: '#000000',
     },
     mainSettingsContainer: {
         width: 330,
-        height: 'auto', // 讓內容撐開
-        paddingBottom: 20, // 底部留點空間
+        height: 'auto',
+        paddingBottom: 20,
         marginTop: 30,
         borderRadius: 12,
-        // pure black stroke (border), opacity 20%
         borderWidth: 1,
         borderColor: 'rgba(0, 0, 0, 0.2)',
-        // drop shadow
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 4, // for android
+        elevation: 4,
     },
     settingRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: 290, // 從 310 改為 300，意即左右再往內各縮 5px
-        height: 48, // 放大了圖像到 48
-        marginTop: 40, // 加大間距（原為 20）
-        alignSelf: 'center', // 置中於 330px 的方格內
+        width: 290,
+        height: 48,
+        marginTop: 40,
+        alignSelf: 'center',
     },
     settingIconCircle: {
         width: 40,
         height: 40,
-        borderRadius: 24, // 變成圓形
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -352,16 +315,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     settingText: {
-        fontSize: 16, // 從 16 變成 24
-        color: '#000000', // 可在 theme 設定
+        fontSize: 16,
+        color: '#000000',
     },
     settingSwitch: {
-        marginLeft: 'auto', // 推到最右邊
-        alignSelf: 'center', // 強制垂直置中
-        transform: [{ scale: 0.9 }], // 將 0.8 改成 0.95 放大一點
+        marginLeft: 'auto',
+        alignSelf: 'center',
+        transform: [{ scale: 0.9 }],
     },
     forwardIcon: {
-        marginLeft: 'auto', // 把箭頭推到最右邊
+        marginLeft: 'auto',
         width: 24,
         height: 24,
         alignSelf: 'center',

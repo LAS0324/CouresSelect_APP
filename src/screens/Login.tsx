@@ -31,11 +31,14 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
+// 💡 修正 1：在 Interface 增加 onGuestLogin
 interface LoginProps {
     onLogin: () => void;
+    onGuestLogin: () => void;
 }
 
-const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
+// 💡 修正 2：在組件參數中解構出 onGuestLogin
+const LoginScreen: React.FC<LoginProps> = ({ onLogin, onGuestLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -93,7 +96,6 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
                 >
                     {/* 插圖區域 */}
                     <View style={styles.imageWrapper}>
-                        {/* 💡 這裡已改為 Image 元件，請在下方 source 修改你的路徑 */}
                         <Image
                             source={require('../../components/APP_icon(bg).png')}
                             style={styles.loginImage}
@@ -106,8 +108,8 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
 
                     {/* 標題與標語 */}
                     <View style={styles.textSection}>
-                        <Text style={styles.title}>{isLoginMode ? "歡迎使用選課助手" : "建立新帳號"}</Text>
-                        <Text style={styles.subtitle}>{isLoginMode ? "開展您的學術禪意之旅" : "加入我們，開始您的學習旅程"}</Text>
+                        <Text style={styles.title}>{isLoginMode ? "歡迎使用揪課" : "建立新帳號"}</Text>
+                        <Text style={styles.subtitle}>{isLoginMode ? "一起成長茁壯" : "加入我們，開始您的學習旅程"}</Text>
                     </View>
 
                     {/* 使用者輸入區域 */}
@@ -143,9 +145,19 @@ const LoginScreen: React.FC<LoginProps> = ({ onLogin }) => {
                         </Text>
                     </TouchableOpacity>
 
+                    {/* 💡 修正 3：綁定正確的 onGuestLogin 函式 */}
+                    <TouchableOpacity
+                        style={styles.guestButton}
+                        onPress={onGuestLogin}
+                        activeOpacity={0.8}
+                        disabled={isLoading}
+                    >
+                        <Text style={styles.guestButtonText}>以訪客身份體驗</Text>
+                    </TouchableOpacity>
+
                     {/* 切換模式文字 */}
                     <TouchableOpacity
-                        style={{ marginTop: 10, paddingVertical: 10, alignItems: 'center' }}
+                        style={{ marginTop: 15, paddingVertical: 10, alignItems: 'center' }}
                         onPress={() => setIsLoginMode(!isLoginMode)}
                         activeOpacity={0.8}
                         disabled={isLoading}
@@ -183,7 +195,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    // 💡 新增圖片樣式
     loginImage: {
         width: 180,
         height: 180,
@@ -249,6 +260,21 @@ const styles = StyleSheet.create({
     loginButtonText: {
         fontSize: 16,
         color: "#FFF",
+        fontWeight: "bold",
+    },
+    guestButton: {
+        width: "100%",
+        height: 55,
+        borderRadius: 30,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: COLORS.primary || "#4A90E2",
+        backgroundColor: 'transparent',
+    },
+    guestButtonText: {
+        fontSize: 16,
+        color: COLORS.primary || "#4A90E2",
         fontWeight: "bold",
     },
     footer: {
